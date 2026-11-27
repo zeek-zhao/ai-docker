@@ -1,19 +1,20 @@
 # config/homepage/services.yaml —— HomePage 服务清单（仅本容器对外服务入口，PLAN §13.1）
-# 注意：homepage v2.x 要求分组直接映射为服务数组，每项平铺 name/icon/href/description 字段。
+# 注意：homepage v2.8 要求分组直接映射为**键名式条目数组**（- 服务名: {icon/href/description}），
+# 平铺 name 字段写法会渲染成字面 "name" 占位卡片，二级 items 包装则触发 TypeError。
 - 开发容器:
-    - name: Web 终端
-      icon: mdi-console
-      href: /term/
-      description: ttyd 终端（dev 用户会话）
-    - name: 文件共享
-      icon: mdi-folder-multiple-outline
-      href: /file-share/
-      description: devbox 数据目录浏览/上传/删除
-    - name: DSH 远程桌面
-      icon: mdi-monitor
-      href: /dsh/
-      description: 需 ENABLE_DSH=1 并注入二进制后可用
-    - name: Magpie 面板
-      icon: mdi-robot
-      href: /magpie/
-      description: 需 ENABLE_MAGPIE=1 并注入二进制后可用
+    - Web 终端:
+        icon: mdi-console
+        href: /term/
+        description: ttyd 终端（dev 用户会话）
+    - 文件共享:
+        icon: mdi-folder-multiple-outline
+        href: /file-share/
+        description: devbox 数据目录浏览/上传/删除
+    - DSH 远程桌面:
+        icon: mdi-monitor
+        href: /dsh/
+        description: 需 ENABLE_DSH=1 并注入二进制后可用
+    - Magpie 面板:
+        icon: mdi-robot
+        href: /magpie/
+        description: 需 ENABLE_MAGPIE=1 并注入二进制后可用
