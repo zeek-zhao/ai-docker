@@ -7,6 +7,12 @@ on:
   schedule:
     - cron: "17 3 */7 * *"       # minute=stagger_minute；日域 */every_days（五段式）
   workflow_dispatch:
+  push:                          # dispatch 需默认分支注册（平台约束，见验收记录 F-4）；功能分支以 push 触发
+    branches: [repo-mirror-sync]
+    paths:
+      - ".github/workflows/repo-mirror-sync-scan.yml"
+      - "solutions/repo-mirror-sync/config/scan.yaml"
+      - "solutions/repo-mirror-sync/tools/scan_inventory.py"
 
 permissions:
   contents: read

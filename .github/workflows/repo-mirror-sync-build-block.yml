@@ -18,6 +18,11 @@ on:
         required: false
         default: verify-block
         type: string
+  push:                          # dispatch 需默认分支注册（平台约束，见验收记录 F-4）；功能分支以 push 触发
+    branches: [repo-mirror-sync]
+    paths:
+      - ".github/workflows/repo-mirror-sync-build-block.yml"
+      - "solutions/repo-mirror-sync/docker/**"
 
 permissions:
   contents: read
@@ -30,6 +35,8 @@ defaults:
 jobs:
   build-block:
     runs-on: ubuntu-latest
+    env:
+      BLOCK_ID: ${{ inputs.block_id }}   # push 事件无 inputs，兜底见步骤内 :- 默认
     steps:
       - uses: actions/checkout@v4
 
@@ -44,28 +51,28 @@ jobs:
 
       - name: 准备验证块构建上下文（运行时生成，不入库；AGENTS §3.2）
         run: |
-          mkdir -p "blocks/${{ inputs.block_id }}/repo"
-          cat > "blocks/${{ inputs.block_id }}/bindings.json" <<JSON
+          mkdir -p "blocks/${BLOCK_ID:-verify-block}/repo"
+          cat > "blocks/${BLOCK_ID:-verify-block}/bindings.json" <<JSON
           {
-            "block": "${{ inputs.block_id }}",
+            "block": "${BLOCK_ID:-verify-block}",
             "manifest_rev": "ci-verify-${{ github.run_number }}",
             "entries": [],
             "repos": []
           }
           JSON
-          echo "verify-block sample (CI 链路验证)" > "blocks/${{ inputs.block_id }}/repo/README.md"
+          echo "verify-block sample (CI 链路验证)" > "blocks/${BLOCK_ID:-verify-block}/repo/README.md"
 
       - name: 块镜像构建（fail-fast：缺绑定表/缺目录即失败，FR-B3）
         run: |
           docker build -f docker/block.Dockerfile \
-            --build-arg BUILD_BLOCK=${{ inputs.block_id }} \
+            --build-arg BUILD_BLOCK=${BLOCK_ID:-verify-block} \
             --build-arg BLOCK_VERSION=${{ github.run_number }} \
-            -t "block-${{ inputs.block_id }}:${{ github.run_number }}" .
+            -t "block-${BLOCK_ID:-verify-block}:${{ github.run_number }}" .
 
       - name: 绑定表检查（镜像内 fail-fast 语义等价，FR-B3）
         run: |
           docker run --rm --entrypoint test \
-            "block-${{ inputs.block_id }}:${{ github.run_number }}" \
+            "block-${BLOCK_ID:-verify-block}:${{ github.run_number }}" \
             -f /opt/block/bindings.json
           echo "绑定表检查通过（镜像内 /opt/block/bindings.json）"
 
@@ -74,7 +81,7 @@ jobs:
           AGE_RECIPIENTS: ${{ secrets.AGE_RECIPIENTS }}
         run: |
           mkdir -p out
-          docker save "block-${{ inputs.block_id }}:${{ github.run_number }}" -o out/block.tar
+          docker save "block-${BLOCK_ID:-verify-block}:${{ github.run_number }}" -o out/block.tar
           sha256sum out/block.tar | tee out/block.tar.sha256
           age -encrypt -r "$AGE_RECIPIENTS" -o out/block.tar.age out/block.tar
           rm -f out/block.tar
@@ -82,7 +89,7 @@ jobs:
       - name: 上传加密制品
         uses: actions/upload-artifact@v4
         with:
-          name: block-${{ inputs.block_id }}-${{ github.run_number }}
+          name: block-${BLOCK_ID:-verify-block}-${{ github.run_number }}
           path: |
             solutions/repo-mirror-sync/out/block.tar.age
             solutions/repo-mirror-sync/out/block.tar.sha256

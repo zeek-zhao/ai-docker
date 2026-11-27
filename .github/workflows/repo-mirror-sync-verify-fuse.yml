@@ -11,6 +11,12 @@ on:
         description: 组合 ID（config/policy.yaml combos[].id，如 full-reading）
         required: true
         default: full-reading
+  push:                          # dispatch 需默认分支注册（平台约束，见验收记录 F-4）；功能分支以 push 触发
+    branches: [repo-mirror-sync]
+    paths:
+      - ".github/workflows/repo-mirror-sync-verify-fuse.yml"
+      - "solutions/repo-mirror-sync/docker/**"
+      - "solutions/repo-mirror-sync/tools/fuse_verify.py"
 
 permissions:
   contents: read
