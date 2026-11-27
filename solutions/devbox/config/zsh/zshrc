@@ -1,0 +1,27 @@
+# /etc/skel/.zshrc —— devbox 默认 zsh 配置（PLAN §5.1）
+export ZSH="/usr/share/oh-my-zsh"
+ZSH_THEME="powerlevel10k/powerlevel10k"
+
+# 插件清单（PLAN §5.1，可增删；zsh-syntax-highlighting 约定放最后）
+plugins=(git z zsh-autosuggestions zsh-syntax-highlighting sudo command-not-found fzf)
+
+source $ZSH/oh-my-zsh.sh
+
+# NVM / Node（镜像内预装 LTS，PLAN §4.2）
+export NVM_DIR="/opt/nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+# Go（PLAN §4.3）
+export GOPATH="$HOME/go"
+export PATH="$PATH:/usr/local/go/bin:$GOPATH/bin"
+
+# ripgrep Unix 风格输出（PLAN §4.4）
+export RIPGREP_CONFIG_PATH="$HOME/.ripgreprc"
+[ -f "$RIPGREP_CONFIG_PATH" ] || echo "--glob='!.git'" > "$RIPGREP_CONFIG_PATH"
+
+# powerlevel10k 即时提示与主题配置
+if [ -n "${ZSH_VERSION:-}" ]; then
+  autoload -Uz promptinit 2>/dev/null || true
+fi
+[[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
