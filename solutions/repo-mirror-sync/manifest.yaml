@@ -61,6 +61,7 @@ entries:
   - { path: "features/alert.feature",            kind: test, role: "SC-M5-01~04 告警 payload 与节流行为场景（中文 Gherkin）", state: delivered }
   - { path: "features/detect_drift.feature",     kind: test, role: "SC-M6-01~06 漂移检测行为场景（中文 Gherkin）", state: delivered }
   - { path: "features/fuse_verify.feature",      kind: test, role: "SC-M7-01~04 非特权融合校验行为场景（中文 Gherkin，ADR-011）", state: delivered }
+  - { path: "features/merge_arbitration.feature", kind: test, role: "SC-M10-01~06 合并裁决行为场景（中文 Gherkin，docs/01 §12.3）", state: delivered }
   - { path: "tests/bdd_runner.py",             kind: test, role: 极简中文 Gherkin 解析与执行器,            state: delivered }
   - { path: "tests/test_bdd_features.py",      kind: test, role: BDD 场景 → unittest 桥接（load_tests 协议）, state: delivered }
   - { path: "tests/bdd_steps_scan.py",         kind: test, role: "SC-M1-01~07 步骤定义（FakeFetcher 注入）", state: delivered }
@@ -70,6 +71,7 @@ entries:
   - { path: "tests/bdd_steps_alert.py",        kind: test, role: "SC-M5-01~04 步骤定义（payload/节流/静态出处断言）", state: delivered }
   - { path: "tests/bdd_steps_drift.py",        kind: test, role: "SC-M6-01~06 步骤定义（FakeUpstream/FakeMirrorProber 注入）", state: delivered }
   - { path: "tests/bdd_steps_fuse.py",         kind: test, role: "SC-M7-01~04 步骤定义（层夹具/独立重算/零特权静态断言）", state: delivered }
+  - { path: "tests/bdd_steps_arbitration.py",  kind: test, role: "SC-M10-01~06 步骤定义（裁决夹具/独立重算/隔离区落盘）", state: delivered }
 
   # ---- 测试报告 ----
   - { path: "reports/test-report.json", kind: report, role: 测试结果机器可读报告（运行时生成）, state: runtime-generated }
@@ -87,6 +89,7 @@ entries:
   - { path: "tools/scan_inventory.py", kind: code, role: "阶段1 扫描清单（API 配额+cursor 续跑；SC-M1-01~07）", state: delivered }
   - { path: "tools/detect_drift.py",   kind: code, role: "阶段3 漂移检测（上游 HEAD vs ls-remote，只比 sha；SC-M6-01~06）", state: delivered }
   - { path: "tools/fuse_verify.py",    kind: code, role: "阶段4 非特权融合校验 harness（用户态等价；复用 overlay.py/merge_guard 唯一裁决；SC-M7-01~04）", state: delivered }
+  - { path: "tools/merge_arbitration.py", kind: code, role: "阶段3 合并裁决（FR-D2，docs/01 §12.3：drop/quarantine + §13.2 内容级去重；委托 merge_guard 唯一裁决；SC-M10-01~06）", state: delivered }
   - { path: "tools/plan.py",           kind: code, role: "阶段3 组合求解器（选块+FFD 装箱+降级；SC-M3-01~05）", state: delivered }
   - { path: "tools/merge_guard.py",    kind: code, role: "阶段4 融合守卫（唯一裁决入口编排+层数两级融合建议；SC-M4-01~04）", state: delivered }
   - { path: "tools/alert.py",          kind: code, role: "阶段5 告警 payload 生成+节流状态机（纯逻辑，网络层独立于 notify.py；snapshot/restore 跨进程 H10；SC-M5-01~04）", state: delivered }

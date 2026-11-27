@@ -37,7 +37,7 @@
 
 ## 3. 执行结果
 
-- **末次执行**：79/79 全部通过（回归 35 项 + BDD 场景 44 项，0 失败 0 错误 0 跳过，见 §6~§14）；
+- **末次执行**：85/85 全部通过（回归 35 项 + BDD 场景 50 项，0 失败 0 错误 0 跳过，见 §6~§15）；
   机读详情见 `reports/test-report.json`（含每用例状态与耗时）。
 - **执行环境**：Python 标准库 unittest；Windows 开发机与 Linux 目标服务器
   均可运行（无第三方依赖、路径自定位、统一 LF 行尾）。
@@ -245,7 +245,7 @@ edge 0.2GB 合箱 2.0GB）。两种分组均为满足「每 job ≤ 4.0 GB、合
 | SC-M9-05~08（features/cache_gc.feature） | 缓存 LRU（8 块×2 版本）、预算超限 cache_pressure 双数成对、.age 加密层豁免、limits 唯一出处静态断言 | 绿 |
 | SC-M1-09（features/scan_inventory.feature） | GH_TOKENS 逗号分隔轮转唯一入口 + GH_TOKEN 回退 + 无 token 字面量（FR-A3） | 绿 |
 
-回归：79/79 全绿（35 单测 + 44 BDD 场景，0 失败 0 错误）。
+回归：85/85 全绿（35 单测 + 50 BDD 场景，0 失败 0 错误）。
 
 ### 14.2 缺陷（F 编号沿用验收记录）
 
@@ -269,6 +269,35 @@ edge 0.2GB 合箱 2.0GB）。两种分组均为满足「每 job ≤ 4.0 GB、合
 - GH_TOKENS 轮转 stub 离线实证：bad→403 依序轮转 good→200、耗尽 HTTPError 403 冒泡、GH_TOKENS 缺省回退 GH_TOKEN 单枚，三场景全过；
 - 详见 `reports/acceptance-20261128-alert-dispatch.md`（E2E-1~11）。
 
+## 15. M10 轮补充（合并裁决，FR-D2/Issue #3）
+
+### 15.1 场景与红灯
+
+| 场景 | 覆盖 | 结果 |
+|---|---|---|
+| SC-M10-01 | 基线一致 → drop 只记合并日志 | 绿 |
+| SC-M10-02 | 基线不一致 → quarantine + published=False + manual_review | 绿 |
+| SC-M10-03 | 顺序固定 order=[manifest_rebuild, drift_fetch] | 绿 |
+| SC-M10-04 | 同路径同内容 → hardlink 去重计划 | 绿 |
+| SC-M10-05 | 异内容 → 委托融合守卫（§13.2 矩阵）与独立重算一致 | 绿 |
+| SC-M10-06 | 隔离区 notice.json（manual_review/published）落盘 | 绿 |
+
+红灯：SC-M10-01 NotImplementedError（80=79+1 红）；中文 Gherkin 关键字后缺空格致 23 行不匹配（教训 D-27：关键字与内容间必须有空格）。
+
+### 15.2 缺陷登记
+
+| 编号 | 现象 | 根因 | 处置 |
+|---|---|---|---|
+| F-17 | CLI 静默退出无产物（E2E-12 首跑） | merge_arbitration.py 缺 `if __name__ == "__main__"` 入口，BDD 未覆盖 CLI 入口 | 补入口；E2E-12 复跑通过 |
+| F-18 | suite 80=79+1（六场景仅产出 1 个用例，29 步串联假绿灯） | feature 场景缺独立 `@SC-` tag 行（SC 编号误写入标题行，违反 D-12/D-14） | 按规范格式补 6 个 tag 行；85/85 真绿灯（六场景独立执行仍全过，实现本身正确） |
+| D-28 | dedupe 委托守卫抛 DecideError「在场层不在 precedence 中」 | 合并域称谓 [manifest,fetch] 非 precedence 层名 | 引入 ARBITRATION_LAYERS=(toolchain,self-dev) 映射后委托；独立重算步骤同步引用 |
+
+### 15.3 实测佐证
+
+- E2E-12 CLI 冒烟：drop 路径追加 merge-log.json（无隔离区）；quarantine 路径落 `quarantine/acme/a/{sha12}/notice.json`（manual_review=true、published=false）；
+- 85/85 全绿（35 单测 + 50 BDD 场景）；FR-D1 全链已由 CI 真实跑通（head_sha==mirror_sha 首检基线写回，run 46055114527）；
+- Issue #3（FR-D2 合并裁决）随本轮交付关闭评论。
+
 ## 修订历史
 
 | 版本 | 日期 | 修订说明 |
@@ -284,3 +313,4 @@ edge 0.2GB 合箱 2.0GB）。两种分组均为满足「每 job ≤ 4.0 GB、合
 | 1.0.8 | 2026-11-28 | M8 补充：SC-M1-08（F-9 回归）70/70 全绿；CI 实测 V16~V18 与还原 T1~T7（验收记录 20261128-ci-restore）；缺陷/约束 F-4~F-9 登记（§13） |
 | 1.0.9 | 2026-11-28 | M9 补充：SC-M9-01~08（告警投递网络层+缓存 LRU）与 SC-M1-09（GH_TOKENS 轮转）79/79 全绿；实测 E2E-1~8（github-issue 真发 Issue #8+节流抑制、cache LRU、GH_TOKENS 冒烟，验收记录 20261128-alert-dispatch）；缺陷/治理漏项 F-10~F-14 登记（§14） |
 | 1.0.10 | 2026-11-28 | M10 收口补充：CI 端到端告警达成与 GH_TOKENS 轮转 stub 实证（§14.3）；F-15 补记+F-16 登记（§14.2） |
+| 1.0.11 | 2026-11-28 | M11 补充：SC-M10-01~06（合并裁决 FR-D2）85/85 全绿（§15）；E2E-12 CLI 冒烟；F-17/F-18/D-28 登记；Issue #3 收口 |
