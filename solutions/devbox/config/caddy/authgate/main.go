@@ -1,9 +1,9 @@
-# =============================================================================
-# auth-gate —— zeek-ai-devbox 统一会话鉴权微服务（R4 方案落地）
-# 文档编号：RT-002 · 版本：v1.0 · 2026-11-27 · 维护人：zeek.zhao
-# 职责：登录页 + HMAC 签名 Cookie 会话（默认 7 天）+ forward_auth /verify 校验
-# 环境变量：AUTH_USER / AUTH_PASSWORD / SESSION_TTL_HOURS / COOKIE_SECRET / LISTEN_ADDR
-# =============================================================================
+// =============================================================================
+// auth-gate —— zeek-ai-devbox 统一会话鉴权微服务（R4 方案落地）
+// 文档编号：RT-002 · 版本：v1.0 · 2026-11-27 · 维护人：zeek.zhao
+// 职责：登录页 + HMAC 签名 Cookie 会话（默认 7 天）+ forward_auth /verify 校验
+// 环境变量：AUTH_USER / AUTH_PASSWORD / SESSION_TTL_HOURS / COOKIE_SECRET / LISTEN_ADDR
+// =============================================================================
 
 package main
 
