@@ -51,6 +51,29 @@ class FakeFetcher:
         raise ValueError(kind)
 
 
+# ---- SC-M1-09 多 token 轮转静态断言（FR-A3；步骤追加） ----
+
+@step("given", r"^已读取 tools/scan_inventory\.py 源码$")
+def given_scanner_src(ctx):
+    ctx["scanner_src"] = (_ROOT / "tools" / "scan_inventory.py").read_text(encoding="utf-8")
+
+
+@step("then", r"^源码支持 GH_TOKENS 逗号分隔轮转$")
+def then_rotation(ctx):
+    assert "GH_TOKENS" in ctx["scanner_src"], "scan_inventory.py 缺 GH_TOKENS 轮转"
+
+
+@step("then", r"^源码保留 GH_TOKEN 单 token 回退$")
+def then_fallback(ctx):
+    assert 'os.environ.get(token_env)' in ctx["scanner_src"], "缺 GH_TOKEN 回退读取"
+
+
+@step("then", r"^源码不含 token 字面量$")
+def then_no_literal(ctx):
+    src = ctx["scanner_src"]
+    assert "ghp_" not in src and "github_pat_" not in src, "源码含 token 字面量"
+
+
 def _parse_list(raw):
     """解析 `[a, b]` 形式的步骤参数 → Python 列表。"""
     return [item.strip().strip('"') for item in raw.split(",") if item.strip()]

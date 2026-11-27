@@ -18,6 +18,8 @@ limits:
   overhead_gb: 0.4               # 基础层 + manifest + 构建缓存 + 日志（实测 0.3~0.5）
   safety_factor: 1.25            # k：覆盖 git 对象膨胀 / LFS / 加密体积
   cache_gb: 10                   # Actions 缓存上限，用于 LRU 淘汰策略（FR-A2）
+  keep_blocks: 8                 # LRU 保留最近 N 块（FR-A2，2026-11-28 需求方确认默认值）
+  keep_versions: 2               # 每块保留版本数（docs/01 §16 H1 固定 2）
 
 budget:
   # D2 确认：单 job 原始体积上限 ≈ 4.0 GB（=(5−0.4)/1.25 再取整冗余）

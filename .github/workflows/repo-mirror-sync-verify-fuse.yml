@@ -17,6 +17,7 @@ on:
       - ".github/workflows/repo-mirror-sync-verify-fuse.yml"
       - "solutions/repo-mirror-sync/docker/**"
       - "solutions/repo-mirror-sync/tools/fuse_verify.py"
+      - "solutions/repo-mirror-sync/tools/cache_gc.py"
 
 permissions:
   contents: read
@@ -112,3 +113,6 @@ jobs:
             solutions/repo-mirror-sync/out/block.tar.sha256
             solutions/repo-mirror-sync/out/fuse-verify/decisions.json
           retention-days: 7
+
+      - name: 缓存治理审计（FR-A2；Actions cache 后端接入属后续，out/cache 当前为空=零清理）
+        run: PYTHONPATH=. python3 tools/cache_gc.py --cache-dir out/cache --out out

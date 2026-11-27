@@ -77,6 +77,7 @@ entries:
   - { path: "reports/acceptance-20261128-docker-build.md", kind: report, role: "阶段4 实际构建验证记录（V1~V7 已执行；工具链缺包发现 F-1→Issue #4）", state: delivered }
   - { path: "reports/acceptance-20261128-ubuntu24-fuse-verify.md", kind: report, role: "V2 修复轮实测记录（ubuntu:24.04 基座 V10~V14；harness 非特权端到端 V15；F-1 关闭）", state: delivered }
   - { path: "reports/acceptance-20261128-ci-restore.md", kind: report, role: "M8 轮 CI 触发与产物还原记录（三流水线 V16~V18 全绿；本地还原 T1~T7；F-4~F-9 登记）", state: delivered }
+  - { path: "reports/acceptance-20261128-alert-dispatch.md", kind: report, role: "M9 阶段5 告警投递与缓存治理实测记录（github-issue 真发 Issue #8+节流抑制；cache LRU；GH_TOKENS 冒烟；F-10~F-14 登记）", state: delivered }
 
   # ---- 不入库目录占位 ----
   - { path: "out/.gitkeep",   kind: keep, role: 运行产物区占位（目录本体不入库）, state: delivered }
@@ -88,10 +89,12 @@ entries:
   - { path: "tools/fuse_verify.py",    kind: code, role: "阶段4 非特权融合校验 harness（用户态等价；复用 overlay.py/merge_guard 唯一裁决；SC-M7-01~04）", state: delivered }
   - { path: "tools/plan.py",           kind: code, role: "阶段3 组合求解器（选块+FFD 装箱+降级；SC-M3-01~05）", state: delivered }
   - { path: "tools/merge_guard.py",    kind: code, role: "阶段4 融合守卫（唯一裁决入口编排+层数两级融合建议；SC-M4-01~04）", state: delivered }
-  - { path: "tools/alert.py",          kind: code, role: "阶段5 告警 payload 生成+节流状态机（网络层薄封装；SC-M5-01~04）", state: delivered }
+  - { path: "tools/alert.py",          kind: code, role: "阶段5 告警 payload 生成+节流状态机（纯逻辑，网络层独立于 notify.py；snapshot/restore 跨进程 H10；SC-M5-01~04）", state: delivered }
+  - { path: "tools/notify.py",         kind: code, role: "阶段5 告警投递网络层（唯一网络点；github-issue/feishu sender+节流落盘恢复；SC-M9-01~03）", state: delivered }
+  - { path: "tools/cache_gc.py",       kind: code, role: "阶段5 缓存 LRU 清理与预算审计（limits 唯一出处；加密层豁免；SC-M9-05~08）", state: delivered }
   - { path: "docker/toolchain.Dockerfile", kind: image, role: "阶段2 L0 工具链镜像（ubuntu:24.04 digest 固定，SC-M2-01；ADR-011）", state: delivered }
   - { path: "docker/block.Dockerfile",     kind: image, role: "阶段2 块镜像定义（索引不进继承链，SC-M2-02）", state: delivered }
   - { path: "docker/fused.Dockerfile",     kind: image, role: "阶段4 融合视图定义（静态结构先行，SC-M2-03）", state: delivered }
-  - { path: "../../.github/workflows/repo-mirror-sync-scan.yml",       kind: ci, role: "阶段1 定时扫描流水线（cron 对齐 config；ADR-012 迁仓库根级；SC-M2-04）", state: delivered }
-  - { path: "../../.github/workflows/repo-mirror-sync-build-block.yml", kind: ci, role: "阶段2 块构建流水线（全层加密+sha256；镜像内 fail-fast 绑定表检查；ADR-012）", state: delivered }
-  - { path: "../../.github/workflows/repo-mirror-sync-verify-fuse.yml", kind: ci, role: "阶段4 融合验收流水线（非特权用户态等价校验+加密往返哈希门禁，ADR-011/012）", state: delivered }
+  - { path: "../../.github/workflows/repo-mirror-sync-scan.yml",       kind: ci, role: "阶段1 定时扫描流水线（cron 对齐 config；ADR-012 迁仓库根级；漂移检测+FR-A1 告警投递接入；SC-M2-04/SC-M9-04）", state: delivered }
+  - { path: "../../.github/workflows/repo-mirror-sync-build-block.yml", kind: ci, role: "阶段2 块构建流水线（全层加密+sha256；镜像内 fail-fast 绑定表检查；缓存治理审计（FR-A2）；ADR-012）", state: delivered }
+  - { path: "../../.github/workflows/repo-mirror-sync-verify-fuse.yml", kind: ci, role: "阶段4 融合验收流水线（非特权用户态等价校验+加密往返哈希门禁；缓存治理审计（FR-A2）；ADR-011/012）", state: delivered }

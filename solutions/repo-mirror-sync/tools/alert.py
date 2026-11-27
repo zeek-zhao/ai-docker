@@ -93,6 +93,28 @@ class AlertThrottle:
         self._last[key] = now
         return True
 
+    def snapshot(self):
+        """导出纯数据快照（落盘/跨进程恢复用，H10；不含凭据）。"""
+        return {"window_seconds": self.window_seconds, "last": dict(self._last)}
+
+    def restore(self, state):
+        """从 snapshot() 数据恢复；结构非法即拒绝（防半截文件静默生效）。"""
+        if not isinstance(state, dict):
+            raise AlertError("节流快照必须为对象")
+        window = state.get("window_seconds")
+        last = state.get("last", {})
+        if isinstance(window, bool) or not isinstance(window, (int, float)) or window <= 0:
+            raise AlertError("节流快照窗口非法")
+        if not isinstance(last, dict):
+            raise AlertError("节流快照键表非法")
+        clean = {}
+        for key, stamp in last.items():
+            if isinstance(key, str) and key and not isinstance(stamp, bool) \
+                    and isinstance(stamp, (int, float)):
+                clean[key] = stamp
+        self.window_seconds = window
+        self._last = clean
+
 
 def build_payload(event, rules):
     """按策略白名单构建告警事件 payload；未知事件类型抛 AlertError。

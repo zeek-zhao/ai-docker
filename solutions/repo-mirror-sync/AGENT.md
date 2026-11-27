@@ -66,10 +66,11 @@
 | 6 漂移检测 | ✅ 已完成（M6） | `tools/detect_drift.py`（上游 HEAD vs ls-remote 只比 sha、mirror_sha 写回、drift_detected 事件、预算/cursor；SC-M6-01~06 绿） |
 | 7 非特权融合校验 | ✅ 已完成（M7） | `tools/fuse_verify.py`（用户态等价校验 harness，复用 overlay.py 裁决、决策表落盘；SC-M7-01~04 绿；ADR-011） |
 | 8 CI 触发与还原验证 | ✅ 已完成（M8） | 根级三流水线 push 触发实测全绿（V16~V18）；本地还原 T1~T7（解密/加载/融合复算/消费侧挂载自验）；ADR-012/013 |
+| 9 告警与治理 | ✅ 已完成（M9） | notify.py 真发验收（Issue #8+1h 节流抑制）+ cache_gc LRU 实测 + GH_TOKENS 轮转；SC-M9-01~08、SC-M1-09；79/79 |
 
 > 开发方式为 BDD（docs/05 五步法），里程碑与任务清单见 docs/06；
 > M0~M5 已在 `dev/repo-mirror-sync` 完成并合回 main（10db421），
-> M6 起开发在 `repo-mirror-sync` 分支延续；M7 同分支交付（ADR-011：toolchain 换基 ubuntu:24.04 + 非特权融合校验）；M8 完成根级流水线 CI 实测与制品还原验证（ADR-012/013）。
+> M6 起开发在 `repo-mirror-sync` 分支延续；M7 同分支交付（ADR-011：toolchain 换基 ubuntu:24.04 + 非特权融合校验）；M8 完成根级流水线 CI 实测与制品还原验证（ADR-012/013）；M9 完成阶段5 告警与治理（FR-A1 真发验收、FR-A2 缓存 LRU、FR-A3 token 轮转）。
 
 「待执行」意味着对应文件按 manifest.yaml 标注为 `planned`（测试会校验它**不存在**——
 实现某阶段时：先写 feature 场景（红灯），再实现（绿灯），最后把 manifest 条目从
@@ -96,7 +97,7 @@ cat docs/01-方案总览.md              # 3) 读懂方案与决策参数 D1~D5
 | FR×23 / NFR×7 / 验收准则 | `docs/03-需求规格.md` |
 | 目录/文档/提交/变更流程规范 | `docs/04-仓库规划与流程规范.md` |
 | BDD 五步法、场景目录 | `docs/05-BDD总纲与场景目录.md` |
-| 里程碑 M0~M8、任务清单、当前进度 | `docs/06-开发计划与里程碑.md` |
+| 里程碑 M0~M9、任务清单、当前进度 | `docs/06-开发计划与里程碑.md` |
 | 体积阈值、扫描周期、预算 | `config/scan.yaml` |
 | 块定义、组合、加密、选举规则、告警 | `config/policy.yaml` |
 | 全部文件清单与状态 | `manifest.yaml` |
@@ -117,3 +118,4 @@ cat docs/01-方案总览.md              # 3) 读懂方案与决策参数 D1~D5
 | 1.0.6 | 2026-11-28 | 进度表更新：M6 漂移检测完成（`tools/detect_drift.py`，SC-M6-01~06 绿）；开发分支 repo-mirror-sync（本轮补记：该版本修订行在 M6 轮遗漏，见 test-report §12.2 D-25） |
 | 1.0.7 | 2026-11-28 | 进度表更新：M7 非特权融合校验完成（`tools/fuse_verify.py`，SC-M7-01~04 绿，ADR-011）；toolchain 换基 ubuntu:24.04 |
 | 1.0.8 | 2026-11-28 | 进度表更新：M8 CI 触发与还原验证完成（三流水线实测 V16~V18；还原 T1~T7；ADR-012/013） |
+| 1.0.9 | 2026-11-28 | 进度表更新：M9 告警与治理完成（FR-A1 真发验收 Issue #8；FR-A2 缓存 LRU；FR-A3 GH_TOKENS 轮转；79/79） |

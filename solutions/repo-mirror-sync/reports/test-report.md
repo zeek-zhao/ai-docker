@@ -37,7 +37,7 @@
 
 ## 3. 执行结果
 
-- **末次执行**：70/70 全部通过（回归 35 项 + BDD 场景 35 项，0 失败 0 错误 0 跳过，见 §6~§13）；
+- **末次执行**：79/79 全部通过（回归 35 项 + BDD 场景 44 项，0 失败 0 错误 0 跳过，见 §6~§14）；
   机读详情见 `reports/test-report.json`（含每用例状态与耗时）。
 - **执行环境**：Python 标准库 unittest；Windows 开发机与 Linux 目标服务器
   均可运行（无第三方依赖、路径自定位、统一 LF 行尾）。
@@ -67,9 +67,9 @@ edge 0.2GB 合箱 2.0GB）。两种分组均为满足「每 job ≤ 4.0 GB、合
    M6 漂移检测（SC-M6-01~06）、阶段 4 补充 M7 非特权融合校验（SC-M7-01~04）
    与 M8 CI 触发及还原验证（SC-M1-08 回归+CI 实测 V16~V18+还原 T1~T7）
    测试目标全部达成；
-   九轮共发现 24 项缺陷（D-1~D-24）、1 项治理漏项补记（AGENT.md 修订历史缺 1.0.6
-   行，见 §12.2 D-25）与 M8 轮 6 项缺陷/平台约束（F-4~F-9，编号沿用验收记录，
-   见 §13.2），已全部修复或缓解并回归通过。
+   十轮共发现 24 项缺陷（D-1~D-24）、1 项治理漏项补记（AGENT.md 修订历史缺 1.0.6
+   行，见 §12.2 D-25）、M8 轮 6 项缺陷/平台约束（F-4~F-9，编号沿用验收记录，见 §13.2）
+   与 M9 轮 5 项缺陷/治理漏项（F-10~F-14，见 §14.2），已全部修复或缓解并回归通过。
 2. **待执行**（未实现未测，属实际构建/CI 运行，见 docs/06 §4 与 docs/03 §10）：
    M2 产物的实际 Docker 构建、Actions 触发与融合挂载、告警通道真实投递
    须在 Linux 服务器执行；各里程碑完成后按 docs/03 §10 验收准则补充场景并更新本报告。
@@ -235,6 +235,36 @@ edge 0.2GB 合箱 2.0GB）。两种分组均为满足「每 job ≤ 4.0 GB、合
   `reports/acceptance-20261128-ci-restore.md`（V16~V18 + T1~T7）；
 - 离线回归 70/70（35 单测 + 35 BDD 场景）。
 
+## 14. M9 轮补充（告警与治理，1.0.9）
+
+### 14.1 场景
+
+| 场景 | 能力 | 结果 |
+|---|---|---|
+| SC-M9-01~04（features/alert_dispatch.feature） | sender 工厂凭据拒绝与 alert 纯度、节流落盘跨实例、CLI 无凭据 skipped 降级与产物落盘、三流水线接入静态断言 | 绿 |
+| SC-M9-05~08（features/cache_gc.feature） | 缓存 LRU（8 块×2 版本）、预算超限 cache_pressure 双数成对、.age 加密层豁免、limits 唯一出处静态断言 | 绿 |
+| SC-M1-09（features/scan_inventory.feature） | GH_TOKENS 逗号分隔轮转唯一入口 + GH_TOKEN 回退 + 无 token 字面量（FR-A3） | 绿 |
+
+回归：79/79 全绿（35 单测 + 44 BDD 场景，0 失败 0 错误）。
+
+### 14.2 缺陷（F 编号沿用验收记录）
+
+| 编号 | 缺陷 | 根因 | 修复 |
+|---|---|---|---|
+| F-10 | notify 调 render_all(payload, rules) 抛 TypeError | render_all 契约为单参（payload 自带 channels） | 改 render_all(payload)；红灯转绿前发现 |
+| F-11 | dispatch 步骤 ctx 键名与 alert 步骤模块约定不一致（error/allowed） | 新步骤模块未对齐既有约定 | 键名统一 error/allowed |
+| F-12 | bdd_steps_cache ROOT 未定义 + _synth size=100 使 SC-M9-06 预算场景不成立 | 步骤落盘笔误（1000 字节意图写为 100） | 改 _ROOT + size=1000（4000>1000 预算成立） |
+| F-13 | cache_gc 文件级删除残留空目录壳（b01/b02 目录仍在） | clean 契约未含目录壳回收 | 整块删除后 rmdir 空壳（复验 b03~b10 剩余） |
+| F-14 | docs/04 §3.1 目录树 toolchain 注释仍写 overlayfs（M7 ADR-011 治理漏项） | M7 轮文档同步未覆盖目录树注释行 | 本轮修正并补记 |
+
+### 14.3 实测佐证
+
+- github-issue 真发验收（FR-A1）：notify.py 内联 budget_exceeded 事件 → Issue #8（[mirror-sync][budget_exceeded] scan-run，双标签）一分钟内送达；同键立即重发 → throttled（1h 窗口抑制）；验收产物已评论并关闭（评论 201/关闭 200）；
+- 缓存治理实测（FR-A2）：cache_gc CLI 合成 10 块×2 版本 → 块级 LRU 删 b01/b02（4 行日志）+ 空目录壳回收（剩余 b03~b10）；目录缺失 → 零清理审计通过；
+- GH_TOKENS 轮转入口真实冒烟（FR-A3）：单枚 token 真实扫描 3 请求完成，head_sha=d102e6f4d72decc92c579c6eaf737f15b4a9c174（main HEAD）且未超限不产 alert-events.json；
+- feishu-webhook：无 URL 通道 skipped 降级符合设计，真实发送待 FEISHU_WEBHOOK_URL 提供（**待执行**）；
+- 详见 `reports/acceptance-20261128-alert-dispatch.md`（E2E-1~8）。
+
 ## 修订历史
 
 | 版本 | 日期 | 修订说明 |
@@ -248,3 +278,4 @@ edge 0.2GB 合箱 2.0GB）。两种分组均为满足「每 job ≤ 4.0 GB、合
 | 1.0.6 | 2026-11-28 | M6 补充：BDD 场景 SC-M6-01~06（FR-D1/IF-2），65/65 全绿；红灯修复记录 D-22；待执行项收敛至真实 mirror/Linux 端到端实测与 FR-D2 合并裁决 |
 | 1.0.7 | 2026-11-28 | M7 补充：BDD 场景 SC-M7-01~04（FR-F1~F3/ADR-011），69/69 全绿；缺陷 D-23~D-24 与治理漏项 D-25；实测佐证 ubuntu:24.04 基座与 harness 非特权端到端（验收记录 20261128-ubuntu24-fuse-verify） |
 | 1.0.8 | 2026-11-28 | M8 补充：SC-M1-08（F-9 回归）70/70 全绿；CI 实测 V16~V18 与还原 T1~T7（验收记录 20261128-ci-restore）；缺陷/约束 F-4~F-9 登记（§13） |
+| 1.0.9 | 2026-11-28 | M9 补充：SC-M9-01~08（告警投递网络层+缓存 LRU）与 SC-M1-09（GH_TOKENS 轮转）79/79 全绿；实测 E2E-1~8（github-issue 真发 Issue #8+节流抑制、cache LRU、GH_TOKENS 冒烟，验收记录 20261128-alert-dispatch）；缺陷/治理漏项 F-10~F-14 登记（§14） |

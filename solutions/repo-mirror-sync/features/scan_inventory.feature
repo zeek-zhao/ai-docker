@@ -82,3 +82,10 @@
     那么 扫描完成 且已产出记录 1 条 且游标清空
     而且 记录 "acme/a" 的 head_sha 为 s9
     而且 记录 "acme/a" 的 scan_status 为 ok
+
+  @SC-M1-09
+  场景: 多 token 轮转唯一入口静态断言（FR-A3）
+    假如 已读取 tools/scan_inventory.py 源码
+    那么 源码支持 GH_TOKENS 逗号分隔轮转
+    而且 源码保留 GH_TOKEN 单 token 回退
+    而且 源码不含 token 字面量

@@ -17,6 +17,7 @@ from __future__ import annotations
 import csv
 import json
 import os
+import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -184,25 +185,45 @@ def load_cursor(path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _resolve_tokens(token_env="GH_TOKEN"):
+    """FR-A3：GH_TOKENS（逗号分隔多 token 轮转）优先，回退单 GH_TOKEN。"""
+    raw = os.environ.get("GH_TOKENS", "")
+    tokens = [part.strip() for part in raw.split(",") if part.strip()]
+    if not tokens:
+        single = os.environ.get(token_env)
+        if single:
+            tokens = [single]
+    return tokens
+
+
 def make_github_fetcher(token_env="GH_TOKEN", api_base="https://api.github.com"):
     """GitHub REST 适配薄层（仅生产使用；测试注入假 fetcher）。
 
     token 只从环境变量读取（AGENTS §3.4），任何响应内容不回显 token。
+    GH_TOKENS 多 token 轮转（FR-A3）：遇 403/429 依序切换下一枚，全部耗尽再抛错。
     """
-    token = os.environ.get(token_env)
-    if not token:
+    tokens = _resolve_tokens(token_env)
+    if not tokens:
         raise RuntimeError("环境变量 %s 未设置（ refusing to call GitHub API）" % token_env)
+    _idx = 0
 
     def _get(path):
+        nonlocal _idx
         request = urllib.request.Request(
             api_base + path,
             headers={
-                "Authorization": "Bearer " + token,
+                "Authorization": "Bearer " + tokens[_idx],
                 "Accept": "application/vnd.github+json",
                 "X-GitHub-Api-Version": "2022-11-28",
             })
-        with urllib.request.urlopen(request) as resp:
-            return json.loads(resp.read().decode("utf-8"))
+        try:
+            with urllib.request.urlopen(request) as resp:
+                return json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            if exc.code in (403, 429) and _idx + 1 < len(tokens):
+                _idx += 1  # 轮转到下一枚 token（FR-A3），不回显任何凭据
+                return _get(path)
+            raise
 
     def fetch(kind, repo=None, branch=None, sha=None):
         if kind == "head":
@@ -257,6 +278,18 @@ def main(argv=None):
     if result["cursor"]:
         save_cursor(Path(args.out) / "cursor.json", result["cursor"])
     write_inventory(result["records"], args.out)
+    if not result["complete"]:
+        # FR-A1：预算耗尽产出 budget_exceeded 事件（NFR-6 双数成对），notify 步骤投递
+        actual_bytes = sum(int(r.get("size_bytes_est", 0)) for r in result["records"])
+        budget_event = {
+            "kind": "budget_exceeded",
+            "subject": "scan-run",
+            "summary": "本轮扫描未完成：确认体积超预算，游标已保存待续跑",
+            "estimated_bytes": scan_cfg["budget"]["budget_bytes"],
+            "actual_bytes": actual_bytes,
+        }
+        (Path(args.out) / "alert-events.json").write_text(
+            json.dumps([budget_event], ensure_ascii=False, indent=2), encoding="utf-8")
     print("扫描%s：仓库 %d，请求 %d 次"
           % ("完成" if result["complete"] else "未完成（cursor 已保存）",
              len(result["records"]), result["stats"]["requests"]))
