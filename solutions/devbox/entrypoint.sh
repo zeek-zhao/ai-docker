@@ -138,19 +138,30 @@ else
 fi
 
 # 5.7 DSH Web（TD-003：镜像内置 @deepseek-ai/dsh，dsh web 127.0.0.1:3081，dev 身份；PLAN §6.6）
+# 反代形态：Caddy handle_path 剥 /dsh 前缀转发；dsh 以 --public-url 感知前缀入口（D12 实测相对资源引用 ./assets）
 if [ "$ENABLE_DSH" = "1" ]; then
   DSH_BIN="$(ls /opt/nvm/versions/node/*/bin/dsh 2>/dev/null | head -1)"
   NODE_BIN_DIR="$(dirname "${DSH_BIN:-/nonexist}" 2>/dev/null || true)"
   if [ -n "$NODE_BIN_DIR" ] && [ -x "${NODE_BIN_DIR}/dsh" ]; then
     mkdir -p "$RUN_DIR/dsh"
+    DSH_PUBLIC_URL="${DSH_PUBLIC_URL:-http://127.0.0.1:8080/dsh/}"
     (
       runuser -u "$DEV_USER" -- env \
-        HOME="/home/$DEV_USER" PATH="${NODE_BIN_DIR}:/usr/local/bin:/usr/bin:/bin" \
-        sh -c 'cd "$HOME" && dsh web --profile desktop --host 127.0.0.1 --port 3081 --no-open >/tmp/dsh-web.log 2>&1' \
+        HOME="/home/$DEV_USER" PATH="${NODE_BIN_DIR}:/usr/local/bin:/usr/bin:/bin" DSH_PUBLIC_URL="$DSH_PUBLIC_URL" \
+        sh -c 'cd "$HOME" && dsh web --profile desktop --host 127.0.0.1 --port 3081 --no-open --public-url "$DSH_PUBLIC_URL" >/tmp/dsh-web.log 2>&1' \
         || runuser -u "$DEV_USER" -- env \
-        HOME="/home/$DEV_USER" PATH="${NODE_BIN_DIR}:/usr/local/bin:/usr/bin:/bin" \
-        sh -c 'cd "$HOME" && dsh web --host 127.0.0.1 --port 3081 --no-open >/tmp/dsh-web.log 2>&1'
+        HOME="/home/$DEV_USER" PATH="${NODE_BIN_DIR}:/usr/local/bin:/usr/bin:/bin" DSH_PUBLIC_URL="$DSH_PUBLIC_URL" \
+        sh -c 'cd "$HOME" && dsh web --host 127.0.0.1 --port 3081 --no-open --public-url "$DSH_PUBLIC_URL" >/tmp/dsh-web.log 2>&1'
     ) &
+    # dsh web 每次启动生成一次性 token 登录链接；抓取落盘 + 打进容器日志，供 docker logs 获取
+    sleep 6
+    DSH_URL="$(grep -o 'http://[^ ]*token=[A-Za-z0-9._-]*' /tmp/dsh-web.log 2>/dev/null | head -1)"
+    if [ -n "$DSH_URL" ]; then
+      printf '%s\n' "$DSH_URL" > "$RUN_DIR/dsh/url.txt"
+      log "DSH 登录链接（浏览器把前缀换成宿主映射后访问）：$DSH_URL"
+    else
+      log "警告：未抓取到 dsh 登录 token 链接（docker exec cat /tmp/dsh-web.log 查看）"
+    fi
     touch "$RUN_DIR/dsh/enabled"
     log "DSH 已启动（dsh web desktop 档案，127.0.0.1:3081；日志 /tmp/dsh-web.log）"
   else
@@ -161,14 +172,16 @@ else
 fi
 
 # 5.8 Magpie（TD-003/D11/D14：镜像内置 magpie-cli，web 面板 3430 + 网关 3425 单进程，dev 身份）
+# 反代形态：Caddy handle_path 剥 /magpie 前缀转发；MAGPIE_WEB_URL 让 magpie 按前缀打印代理入口（D13 实测）
 if [ "$ENABLE_MAGPIE" = "1" ]; then
   if command -v magpie >/dev/null 2>&1; then
     mkdir -p "$RUN_DIR/magpie"
+    MAGPIE_WEB_URL="${MAGPIE_WEB_URL:-http://127.0.0.1:8080/magpie/}"
     runuser -u "$DEV_USER" -- env \
-      HOME="/home/$DEV_USER" MAGPIE_WEB_KEY="${MAGPIE_WEB_KEY:-devbox-magpie-key}" \
+      HOME="/home/$DEV_USER" MAGPIE_WEB_KEY="${MAGPIE_WEB_KEY:-devbox-magpie-key}" MAGPIE_WEB_URL="$MAGPIE_WEB_URL" \
       sh -c 'cd "$HOME" && magpie web --addr 127.0.0.1:3430 --no-open --gateway >/tmp/magpie-web.log 2>&1' &
     touch "$RUN_DIR/magpie/enabled"
-    log "Magpie 已启动（面板 127.0.0.1:3430 + 网关 3425；web key 见 MAGPIE_WEB_KEY，默认 devbox-magpie-key）"
+    log "Magpie 已启动（面板 127.0.0.1:3430 + 网关 3425；入口 /magpie/?k= 和 MAGPIE_WEB_KEY，默认 devbox-magpie-key）"
   else
     log "警告：ENABLE_MAGPIE=1 但镜像内未找到 magpie 可执行，/magpie 将返回 503"
   fi

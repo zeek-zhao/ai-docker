@@ -41,8 +41,8 @@
 			reverse_proxy 127.0.0.1:8081
 		}
 
-		# /dsh → DSH Web（dsh web，镜像内置；enabled 标记由 entrypoint 写入）
-		handle /dsh/* {
+		# /dsh → DSH Web（dsh web，镜像内置；handle_path 剥前缀——dsh 按 --public-url 以前缀形态发布）
+		handle_path /dsh/* {
 			@dsh_disabled not file /run/devbox/dsh/enabled
 			respond @dsh_disabled "DSH 未启用（compose: ENABLE_DSH=1）" 503
 			reverse_proxy 127.0.0.1:3081 {
@@ -50,8 +50,8 @@
 			}
 		}
 
-		# /magpie → Magpie 面板（镜像内置；网关 API 3425 不对外；enabled 标记由 entrypoint 写入）
-		handle /magpie/* {
+		# /magpie → Magpie 面板（镜像内置；网关 API 3425 不对外；handle_path 剥前缀——magpie 按 MAGPIE_WEB_URL 前缀形态发布）
+		handle_path /magpie/* {
 			@magpie_disabled not file /run/devbox/magpie/enabled
 			respond @magpie_disabled "Magpie 未启用（compose: ENABLE_MAGPIE=1）" 503
 			reverse_proxy 127.0.0.1:3430 {
