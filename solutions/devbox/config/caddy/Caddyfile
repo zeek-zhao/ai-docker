@@ -1,0 +1,66 @@
+# =============================================================================
+# Caddyfile —— zeek-ai-devbox 单端口统一反代（PLAN §6.1）
+# 文档编号：NT-001 · 版本：v1.0 · 2026-11-27 · 维护人：zeek.zhao
+# 路由：/_auth 登录 → forward_auth 统一会话 → / 首页 / /term / /file-share / /dsh / /magpie
+# 所有内部后端仅绑 127.0.0.1；WebSocket 透传（ttyd/DSH 依赖）
+# =============================================================================
+{
+	admin off
+}
+
+:8080 {
+	encode zstd gzip
+
+	route {
+		# 登录/登出页直连 auth-gate（免鉴权区；缺失会导致 /login 被 forward_auth 拦截成重定向循环）
+		@auth_free path /login /logout
+		handle @auth_free {
+			reverse_proxy 127.0.0.1:9090
+		}
+
+		# 登录/登出（兼容别名，前缀剥离后 auth-gate 见 /login /logout）
+		handle_path /_auth/* {
+			reverse_proxy 127.0.0.1:9090
+		}
+
+		# 统一登录态会话鉴权：未登录一律先跳登录页（PLAN §6.1）
+		forward_auth 127.0.0.1:9090 {
+			uri /verify
+			copy_headers Cookie
+		}
+
+		# /term → ttyd Web 终端（dev 用户会话）
+		handle /term/* {
+			reverse_proxy 127.0.0.1:7681
+		}
+
+		# /file-share → filebrowser（浏览/上传/删除 devbox 数据目录）
+		handle /file-share/* {
+			reverse_proxy 127.0.0.1:8081
+		}
+
+		# /dsh → DSH 远程访问网关（本体 3080 不对外；enabled 标记由 entrypoint 写入）
+		handle /dsh/* {
+			@dsh_disabled not file /run/devbox/dsh/enabled
+			respond @dsh_disabled "DSH 未启用或未注入（compose: ENABLE_DSH=1）" 503
+			reverse_proxy 127.0.0.1:3081
+		}
+
+		# /magpie → Magpie 面板（网关 API 3425 不对外；enabled 标记由 entrypoint 写入）
+		handle /magpie/* {
+			@magpie_disabled not file /run/devbox/magpie/enabled
+			respond @magpie_disabled "Magpie 未启用或未注入（compose: ENABLE_MAGPIE=1）" 503
+			reverse_proxy 127.0.0.1:3430
+		}
+
+		# / → HomePage 导航首页（无匹配器兜底，必须置于 route 末位，否则吞掉上述全部路由）
+		# Next.js 16 校验 Host 白名单，反代需改写 Host 为 upstream 本址
+		handle {
+			reverse_proxy 127.0.0.1:3000 {
+				header_up Host 127.0.0.1:3000
+			}
+		}
+
+		respond 404
+	}
+}

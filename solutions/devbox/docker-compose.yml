@@ -1,0 +1,43 @@
+# =============================================================================
+# docker-compose.yml —— zeek-ai-devbox 一键编排
+# 文档编号：BD-002 · 版本：v1.0 · 2026-11-27 · 维护人：zeek.zhao
+# 参数化：WEB_PORT / SSH_PORT / HOST_UID / HOST_GID / 各服务开关
+# 用法：WEB_PORT=8080 SSH_PORT=2222 docker compose up -d
+# =============================================================================
+services:
+  devbox:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: final
+    image: zeek-ai-devbox:latest
+    container_name: zeek-devbox
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+      - "${SSH_PORT:-2222}:22"
+    environment:
+      HOST_UID: "${HOST_UID:-1000}"
+      HOST_GID: "${HOST_GID:-1000}"
+      DEV_USER: "${DEV_USER:-dev}"
+      DEV_PASSWORD: "${DEV_PASSWORD:-123}"        # 本地测试弱密码，公网必改（PLAN §7.1）
+      ROOT_PASSWORD: "${ROOT_PASSWORD:-root}"     # 本地测试弱密码，公网必改
+      ENABLE_TAILSCALE: "${ENABLE_TAILSCALE:-0}"  # 1=启用用户态 tailscale
+      ENABLE_DSH: "${ENABLE_DSH:-0}"              # 1=启用 /dsh 反代（DSH 网关 3081）
+      ENABLE_MAGPIE: "${ENABLE_MAGPIE:-0}"        # 1=启用 /magpie 反代（面板 3430）
+      TZ: Asia/Shanghai
+      LANG: zh_CN.UTF-8
+    volumes:
+      # 唯一数据挂载目录（PLAN §7.3）
+      - ./data:/home/dev/data
+      # ---- 可选挂载（按需取消注释）----
+      # age 私钥（只读；严禁提交仓库，严禁打入镜像）
+      # - ./secrets/key.txt:/secrets/key.txt:ro
+      # 加密发布包目录（manifest + *.age；restore.sh 依次探测 /secrets-pkg 等）
+      # - ./secrets:/secrets-pkg:ro
+      # docker socket（默认不挂；只读挂载仍有提权面，仅可信环境）
+      # - /var/run/docker.sock:/var/run/docker.sock:ro
+      # DSH 网关/面板二进制注入点（ENABLE_DSH=1 时需要）
+      # - ./run/dsh:/run/devbox/dsh:ro
+      # Magpie 二进制注入点（ENABLE_MAGPIE=1 时需要）
+      # - ./run/magpie:/run/devbox/magpie:ro

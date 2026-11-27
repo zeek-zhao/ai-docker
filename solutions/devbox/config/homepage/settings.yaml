@@ -1,0 +1,10 @@
+# config/homepage/settings.yaml —— HomePage 全局设置（PLAN §6.1：聚合容器服务，不配外部链接）
+title: ZeekDevAI DevBox
+theme: dark
+color: slate
+language: zh
+target: _self
+layout:
+  开发容器:
+    style: row
+    columns: 2
