@@ -23,10 +23,11 @@ ENV DEBIAN_FRONTEND=noninteractive \
     TZ=${TIMEZONE}
 
 # 1) apt 国内源（Ubuntu 24.04 使用 deb822 sources；兼容旧格式兜底）
+#    bootstrap 阶段用 http：基础镜像尚无 ca-certificates，https 源无法握手；装包后再切 https（见 2.5）
 RUN if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then \
-      sed -i "s|http://archive.ubuntu.com|https://${APT_MIRROR}|g; s|http://security.ubuntu.com|https://${APT_MIRROR}|g; s|http://cn.archive.ubuntu.com|https://${APT_MIRROR}|g" /etc/apt/sources.list.d/ubuntu.sources; \
+      sed -i "s|http://archive.ubuntu.com|http://${APT_MIRROR}|g; s|http://security.ubuntu.com|http://${APT_MIRROR}|g; s|http://cn.archive.ubuntu.com|http://${APT_MIRROR}|g" /etc/apt/sources.list.d/ubuntu.sources; \
     elif [ -f /etc/apt/sources.list ]; then \
-      sed -i "s|http://archive.ubuntu.com|https://${APT_MIRROR}|g; s|http://security.ubuntu.com|https://${APT_MIRROR}|g" /etc/apt/sources.list; \
+      sed -i "s|http://archive.ubuntu.com|http://${APT_MIRROR}|g; s|http://security.ubuntu.com|http://${APT_MIRROR}|g" /etc/apt/sources.list; \
     fi
 
 # 2) 系统工具 + C/C++ 构建链 + 常用开发库（PLAN §3.2 / §4.1；编码与时区 PLAN §3.1）
@@ -45,6 +46,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && ln -fs /usr/share/zoneinfo/${TIMEZONE} /etc/localtime \
  && dpkg-reconfigure -f noninteractive tzdata \
  && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# 2.5) 企业网私有 CA 注入 + apt 源升级 https（PLAN §12.5 换源指引配套；公网标准环境仅 .gitkeep，等效 no-op）
+#      build.sh 构建前将宿主机 /usr/local/share/ca-certificates/*.crt 复制到 .buildctx/ca/；
+#      toolchain-build/config/services 阶段经 FROM base 继承信任库，GitHub/镜像站 HTTPS 全通。
+COPY .buildctx/ca/ /usr/local/share/ca-certificates/extra/
+RUN update-ca-certificates \
+ && if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then \
+      sed -i "s|http://${APT_MIRROR}|https://${APT_MIRROR}|g" /etc/apt/sources.list.d/ubuntu.sources; \
+    elif [ -f /etc/apt/sources.list ]; then \
+      sed -i "s|http://${APT_MIRROR}|https://${APT_MIRROR}|g" /etc/apt/sources.list; \
+    fi
 
 # 3) Git 全局预设（PLAN §3.3，写入 /etc/gitconfig；运行时可被 age 还原的 ~/.gitconfig 覆盖）
 COPY config/gitconfig /etc/gitconfig
@@ -125,11 +137,12 @@ RUN git clone --depth 1 "${GH_PROXY}${OMZ_REPO}" /usr/share/oh-my-zsh \
  && git clone --depth 1 "${GH_PROXY}${P10K_REPO}" /usr/share/oh-my-zsh/custom/themes/powerlevel10k \
  && rm -rf /usr/share/oh-my-zsh/.git /usr/share/oh-my-zsh/custom/plugins/*/.git /usr/share/oh-my-zsh/custom/themes/powerlevel10k/.git
 
-# 2) powerlevel10k 配套 MesloLGS NF 字体（PLAN §5.1）
+# 2) powerlevel10k 配套 MesloLGS NF 字体（PLAN §5.1；sh 兼容写法，勿用 bash 专属扩展）
 RUN mkdir -p /usr/local/share/fonts \
- && for f in "MesloLGS%20NF%20Regular.ttf" "MesloLGS%20NF%20Bold.ttf" "MesloLGS%20NF%20Italic.ttf" "MesloLGS%20NF%20Bold%20Italic.ttf"; do \
-      curl -fsSL -o "/usr/local/share/fonts/${f//%20/ }" "${GH_PROXY}https://github.com/romkatv/powerlevel10k-media/raw/master/${f}"; \
-    done \
+ && curl -fsSL -o "/usr/local/share/fonts/MesloLGS NF Regular.ttf"     "${GH_PROXY}https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf" \
+ && curl -fsSL -o "/usr/local/share/fonts/MesloLGS NF Bold.ttf"        "${GH_PROXY}https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold.ttf" \
+ && curl -fsSL -o "/usr/local/share/fonts/MesloLGS NF Italic.ttf"      "${GH_PROXY}https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Italic.ttf" \
+ && curl -fsSL -o "/usr/local/share/fonts/MesloLGS NF Bold Italic.ttf" "${GH_PROXY}https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold%20Italic.ttf" \
  && fc-cache -f >/dev/null
 
 # 3) zsh/tmux 用户骨架（首次建用户即生效；.p10k.zsh 由 p10k configure 生成）
@@ -162,7 +175,6 @@ FROM base AS services
 ARG GH_PROXY=""
 ARG TTYD_VERSION=1.7.7
 ARG FILEBROWSER_VERSION=auto
-ARG HOMEPAGE_VERSION=auto
 ARG TAILSCALE_VERSION=auto
 ARG CADDY_DOWNLOAD_URL="https://caddyserver.com/api/download?os=linux&arch=amd64"
 # 注：鉴权由独立 auth-gate + Caddy forward_auth 完成，无需额外 Caddy 模块
@@ -187,15 +199,8 @@ RUN set -eux; \
 # 3) Caddy（caddyserver.com 官方在线构建，标准模块）
 RUN curl -fsSL -o /out/caddy "${CADDY_DOWNLOAD_URL}" && chmod +x /out/caddy
 
-# 4) HomePage 导航首页（gethomepage，Node 应用）
-RUN set -eux; \
-    HP="${HOMEPAGE_VERSION}"; \
-    if [ "${HP}" = "auto" ]; then \
-      HP="$(curl -fsSL https://api.github.com/repos/gethomepage/homepage/releases/latest | grep -o '"tag_name": *"[^"]*"' | cut -d'"' -f4)"; \
-    fi; \
-    curl -fsSL -o /tmp/hp.tgz \
-      "${GH_PROXY}https://github.com/gethomepage/homepage/releases/download/${HP}/homepage.tar.gz" \
- && mkdir -p /opt/homepage && tar -C /opt/homepage -xzf /tmp/hp.tgz && rm -f /tmp/hp.tgz
+# 4) HomePage —— 已移除发布包下载（gethomepage v1→v2 各 release 均不发布二进制资产，D5 变更）；
+#    改由独立阶段 homepage-src 从官方镜像提取，见 final 之前定义。
 
 # 5) Tailscale（用户态；auto = pkgs.tailscale.com stable 最新）
 RUN set -eux; \
@@ -208,6 +213,11 @@ RUN set -eux; \
  && tar -C /tmp -xzf /tmp/ts.tgz \
  && cp "/tmp/tailscale_${TSV}_amd64/tailscale" "/tmp/tailscale_${TSV}_amd64/tailscaled" /out/ \
  && rm -rf /tmp/ts.tgz "/tmp/tailscale_${TSV}_amd64"
+
+# -----------------------------------------------------------------------------
+# Stage 3b: homepage-src —— HomePage 成品直取官方镜像（D5：v2 起无二进制资产，改镜像提取）
+# -----------------------------------------------------------------------------
+FROM ghcr.io/gethomepage/homepage:latest AS homepage-src
 
 # -----------------------------------------------------------------------------
 # Stage 4: final —— 合并成品，启动入口，清理
@@ -224,6 +234,7 @@ ENV LANG=${DEFAULT_LANG} \
 COPY --from=toolchain-build /opt/nvm /opt/nvm
 COPY --from=toolchain-build /usr/local/go /usr/local/go
 COPY --from=toolchain-build /out/gobin/ /usr/local/bin/
+COPY --from=toolchain-build /out/auth-gate /usr/local/bin/auth-gate
 RUN chmod +x /usr/local/bin/* 2>/dev/null || true \
  && ln -sf /usr/local/go/bin/go /usr/local/bin/go \
  && ln -sf /usr/local/go/bin/gofmt /usr/local/bin/gofmt
@@ -236,7 +247,7 @@ RUN fc-cache -f >/dev/null 2>&1 || true
 
 # 3) 服务成品
 COPY --from=services /out/ /usr/local/bin/
-COPY --from=services /opt/homepage/ /opt/homepage/
+COPY --from=homepage-src /app/ /opt/homepage/
 
 # 4) 配置与启动入口
 COPY config/caddy/Caddyfile /etc/devbox/caddy/Caddyfile

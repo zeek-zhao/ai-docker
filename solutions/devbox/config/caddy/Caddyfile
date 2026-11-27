@@ -12,7 +12,13 @@
 	encode zstd gzip
 
 	route {
-		# 登录/登出（免鉴权区，前缀剥离后 auth-gate 见 /login /logout）
+		# 登录/登出页直连 auth-gate（免鉴权区；缺失会导致 /login 被 forward_auth 拦截成重定向循环）
+		@auth_free path /login /logout
+		handle @auth_free {
+			reverse_proxy 127.0.0.1:9090
+		}
+
+		# 登录/登出（兼容别名，前缀剥离后 auth-gate 见 /login /logout）
 		handle_path /_auth/* {
 			reverse_proxy 127.0.0.1:9090
 		}
@@ -21,11 +27,6 @@
 		forward_auth 127.0.0.1:9090 {
 			uri /verify
 			copy_headers Cookie
-		}
-
-		# / → HomePage 导航首页（聚合本容器全部对外服务入口，不配外部链接）
-		handle {
-			reverse_proxy 127.0.0.1:3000
 		}
 
 		# /term → ttyd Web 终端（dev 用户会话）
@@ -50,6 +51,14 @@
 			@magpie_disabled not file /run/devbox/magpie/enabled
 			respond @magpie_disabled "Magpie 未启用或未注入（compose: ENABLE_MAGPIE=1）" 503
 			reverse_proxy 127.0.0.1:3430
+		}
+
+		# / → HomePage 导航首页（无匹配器兜底，必须置于 route 末位，否则吞掉上述全部路由）
+		# Next.js 16 校验 Host 白名单，反代需改写 Host 为 upstream 本址
+		handle {
+			reverse_proxy 127.0.0.1:3000 {
+				header_up Host 127.0.0.1:3000
+			}
 		}
 
 		respond 404

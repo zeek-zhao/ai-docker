@@ -103,7 +103,7 @@ NODE_BIN="$(bash -c '. /opt/nvm/nvm.sh >/dev/null 2>&1; command -v node')"
 if [ -n "$NODE_BIN" ] && [ -f /opt/homepage/server.js ]; then
   runuser -u "$DEV_USER" -- env HOME="/home/$DEV_USER" \
     PATH="$(dirname "$NODE_BIN"):/usr/local/bin:/usr/bin:/bin" \
-    PORT=3000 node /opt/homepage/server.js &
+    PORT=3000 HOSTNAME=0.0.0.0 node /opt/homepage/server.js &
   log "HomePage 已启动 (127.0.0.1:3000, node=$(basename "$NODE_BIN"))"
 else
   log "警告：node 或 /opt/homepage/server.js 缺失，HomePage 未启动"

@@ -3,3 +3,4 @@ data/
 run/
 secrets/key.txt
 secrets/*.tmp
+.buildctx/
