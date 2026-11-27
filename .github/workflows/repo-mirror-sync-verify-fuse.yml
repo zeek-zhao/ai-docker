@@ -71,8 +71,8 @@ jobs:
           docker rm -f tc-tmp > /dev/null
           docker create --name blk-tmp "block-verify-block:${{ github.run_number }}" > /dev/null
           docker export blk-tmp | tar -x -C out/layers/self-dev opt
-        mkdir -p out/layers/self-dev/scripts
-        printf '#!/bin/sh\necho "verify-block build stub (CI 链路验证)"\n' > out/layers/self-dev/scripts/build.sh
+          mkdir -p out/layers/self-dev/scripts
+          printf '#!/bin/sh\necho "verify-block build stub (CI 链路验证)"\n' > out/layers/self-dev/scripts/build.sh
           docker rm -f blk-tmp > /dev/null
           find out/layers -type f | sort
 

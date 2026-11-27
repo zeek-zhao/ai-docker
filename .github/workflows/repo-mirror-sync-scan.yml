@@ -1,6 +1,7 @@
 # repo-mirror-sync-scan.yml — 阶段1 体积清单扫描流水线（ADR-012：迁仓库根级，方案前缀命名）
 # 触发：每 7 天定时（cron 对齐 config/scan.yaml every_days/stagger_minute，SC-M2-04）+ 手动
 # 配额：请求上限与 cursor 续跑由 config/scan.yaml 唯一约束（AGENTS §3.4）；token 走环境变量，禁入库禁日志
+# F-8：MIRROR_SCAN_TOKEN 值曾误写为另一短凭据（API 401），2026-11-28 已重写为本轮 token
 name: scan-inventory
 
 on:
