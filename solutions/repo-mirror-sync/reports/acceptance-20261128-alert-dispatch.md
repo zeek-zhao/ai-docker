@@ -53,13 +53,16 @@
 | E2E-6 | cache_gc 预算兜底 | 预算 1000 字节、4 块×1 版本 | 超限→cache_pressure 双数成对（estimated=1000/actual=4000）、删至 ≤ 预算 | ✅（SC-M9-06 绿灯覆盖） |
 | E2E-7 | GH_TOKENS 冒烟（FR-A3） | 单枚 token 经 GH_TOKENS 真实扫描（scan.yaml 最小集） | 完成扫描、未超限不产 alert-events.json | ✅ 3 请求完成，head_sha=d102e6f4d72decc92c579c6eaf737f15b4a9c174（main HEAD） |
 | E2E-8 | feishu-webhook 降级 | 无 FEISHU_WEBHOOK_URL 投递 | feishu 通道 skipped、github-issue 正常 | ✅（符合决策①；真实发送待执行） |
+| E2E-9 | CI 端到端失败告警（真实 run 触发） | scan run 46054269814 漂移检测步骤真实失败（F-16） | 失败告警步骤真发 scan_error | ✅ 步骤7「失败告警」日志 `scan_error:scanner → sent`（github-issue 真发，FR-A1 无需人为制造） |
+| E2E-10 | F-16 修复后 CI 端到端闭环 | scan run 46055114527（修复提交 b38aaf5） | 流水线绿+产物链完整 | ✅ success；制品含 alert-dispatch.json（results=[]/events=[]）、inventory.json（head_sha==mirror_sha=d102e6f4…，首检基线由漂移检测真实写回）、无 drift_events（无漂移符合预期） |
+| E2E-11 | GH_TOKENS 轮转离线实证（stub API） | 本地 stub：bad→403、good→200，make_github_fetcher(api_base 注入) | 403 依序轮转；耗尽抛错；缺省回退 | ✅ 三场景全过（bad=1/good=1 轮转成功；bad1/bad2 耗尽 HTTPError 403 冒泡；GH_TOKENS 缺省回退 GH_TOKEN 单枚） |
 
 ### 4.3 结论
 
 - FR-A1：github-issue 通道验收达成（E2E-1/2/3）；feishu-webhook 待 URL（待执行）。
 - FR-A2：cache LRU 三级清理与预算审计验收达成（E2E-4~6）。
-- FR-A3：GH_TOKENS 轮转入口唯一性与单枚回退验收达成（SC-M1-09 + E2E-7）；多 token 403/429 切换分支待真实限流场景（待执行）。
-- 三流水线接线静态断言通过（SC-M9-04）；CI 端到端告警待下次真实 run 触发（待执行）。
+- FR-A3：GH_TOKENS 轮转入口唯一性与单枚回退验收达成（SC-M1-09 + E2E-7）；403/429 切换分支已经 stub API 离线实证（E2E-11），真实限流场景仍待执行。
+- 三流水线接线静态断言通过（SC-M9-04）；CI 端到端告警已由真实 run 达成（E2E-9/10：真实失败触发 scan_error 真发，修复后全绿+产物链完整）。
 
 ## 5 缺陷记录（F 编号续）
 
@@ -71,12 +74,13 @@
 | F-13 | cache_gc 文件级删除残留空目录壳 | clean 契约未含目录壳回收 | 整块删除后 rmdir 空壳 |
 | F-14 | docs/04 §3.1 目录树 toolchain 注释仍写 overlayfs | M7 轮（ADR-011）治理漏项 | 本轮修正并补记 docs/04 1.0.3 |
 | F-15 | 验收记录 4.1 凭据行误含真实 token（运行时占位符被宿主替换写入文档） | 文档 heredoc 直写占位符文本触发替换机制 | GitHub Push Protection 拦截（未进远端）；改为描述性文案并全库扫描确认仅此 1 处；教训：入库文档禁写占位符形态文本 |
+| F-16 | CI scan 流水线漂移检测步骤 exit 1（run 46054269814） | 步骤未注入 GH_TOKEN，make_github_fetcher 拒绝无凭据调 API（扫描步骤有、漂移步骤漏） | 补 `GH_TOKEN: secrets.MIRROR_SCAN_TOKEN`（b38aaf5）；本地真实形态冒烟（mirror_sha 空 exit=0）+CI 复跑全绿（46055114527） |
 
 ## 6 待执行事项
 
 - [待执行] feishu-webhook 真实发送验收（待 FEISHU_WEBHOOK_URL 提供，建议经 repo secrets 注入）
 - [待执行] GH_TOKENS 多 token 403/429 真实切换分支验收（待限流场景）
-- [待执行] CI 端到端告警验收（待 scan 流水线真实 run 触发）
+- [已完成] CI 端到端告警验收（E2E-9/10，2026-11-28 真实 run 达成）
 - [待执行] 阶段5 剩余：导出 manifest 仓库列表维护、FR-D2 合并裁决（Issue #3）、dispatch/cron 收口（Issue #7，待合 main）
 
 ## 7 清理记录
@@ -90,3 +94,4 @@
 |---|---|---|
 | 1.0.0 | 2026-11-28 | 首版：M9 阶段5 告警投递与缓存治理实测验收（E2E-1~8、F-10~F-14） |
 | 1.0.1 | 2026-11-28 | 修正 4.1 凭据描述误含运行时替换 token（F-15；Push Protection 拦截于本地，未进远端）；缺陷表增至 F-15 |
+| 1.1.0 | 2026-11-28 | M10 收口：CI 端到端告警达成（E2E-9 真实失败 scan_error 真发、E2E-10 F-16 修复后全绿+mirror_sha 基线写回）、GH_TOKENS 轮转 stub 离线实证（E2E-11）；缺陷表增至 F-16 |
