@@ -24,9 +24,11 @@
 		}
 
 		# 统一登录态会话鉴权：未登录一律先跳登录页（PLAN §6.1）
+		# 注意：禁止 copy_headers Cookie——auth-gate /verify 响应无 Cookie 头，该指令会把发往上游的
+		# Cookie 头清空，导致 dsh/magpie 收不到自身会话 Cookie 而 401（D15 实证）；客户端 Cookie
+		# 由 reverse_proxy 默认透传，无需显式配置。
 		forward_auth 127.0.0.1:9090 {
 			uri /verify
-			copy_headers Cookie
 		}
 
 		# /term → ttyd Web 终端（dev 用户会话）
