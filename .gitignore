@@ -1,0 +1,39 @@
+# =============================================================
+# ai-docker · 多方案仓库版本控制边界
+# 本仓库承载多个独立问题方案（每方案一个 solutions/<id>/ 目录），
+# 因此 out/、local/ 采用任意深度匹配；临时脚本区 local/ 与运行
+# 产物区 out/ 在每个方案目录内都存在且均不入库（见 AGENTS.md §2/§3）。
+# =============================================================
+
+# 运行产物区：inventory / plan 存档等，本地保留，不入库（任意深度）
+**/out/**
+!**/out/.gitkeep
+
+# 临时脚本区：仅本地，严禁提交；命名 local/YYYYMMDD-<主题>.<ext>，
+# 有效期默认 7 天，到期必须删除（见 AGENTS.md §3.2）
+**/local/**
+!**/local/.gitkeep
+
+# 根级临时区
+/tmp/
+
+# Agent 会话本地状态（记忆/缓存），非仓库内容
+.memsearch/
+
+# Python 运行痕迹
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# 日志
+*.log
+
+# 密钥与凭证：任何 token / key / 私钥严禁入库
+*.key
+*.pem
+.env
+.env.*
+
+# 测试机读报告：每次运行覆盖生成（manifest 标注 runtime-generated，不入库）
+solutions/repo-mirror-sync/reports/test-report.json

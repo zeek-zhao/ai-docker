@@ -1,0 +1,118 @@
+# repo-mirror-sync-verify-fuse.yml — 阶段4 融合验收流水线（ADR-012：迁仓库根级）
+# CI 验收 = 非特权用户态等价校验（tools/fuse_verify.py，ADR-011）+ FR-B4 加密→解密往返哈希门禁；
+# 内核 OverlayFS 挂载属消费侧运行时语义，不作 CI 门禁（ADR-011）。
+# 入参 combo_id：组合 id 取 config/policy.yaml combos[].id；组合展开依赖阶段 5 plan（本流水线仅收参记录）。
+name: verify-fuse
+
+on:
+  workflow_dispatch:
+    inputs:
+      combo_id:
+        description: 组合 ID（config/policy.yaml combos[].id，如 full-reading）
+        required: true
+        default: full-reading
+  push:                          # dispatch 需默认分支注册（平台约束，见验收记录 F-4）；功能分支以 push 触发
+    branches: [repo-mirror-sync]
+    paths:
+      - ".github/workflows/repo-mirror-sync-verify-fuse.yml"
+      - "solutions/repo-mirror-sync/docker/**"
+      - "solutions/repo-mirror-sync/tools/fuse_verify.py"
+      - "solutions/repo-mirror-sync/tools/cache_gc.py"
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: solutions/repo-mirror-sync
+
+jobs:
+  verify-fuse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 age
+        run: sudo apt-get update && sudo apt-get install -y age
+
+      - name: age 解密凭据准备（密钥走临时文件，禁入库禁日志）
+        run: |
+          printf '%s\n' "${{ secrets.AGE_KEY }}" > "$RUNNER_TEMP/age.key"
+          chmod 600 "$RUNNER_TEMP/age.key"
+
+      - name: 构建 L0 工具链镜像（ubuntu:24.04，digest 固定）
+        run: |
+          docker build -f docker/toolchain.Dockerfile \
+            --build-arg UBUNTU_DIGEST=sha256:562111b88caa79c71391c0c4d3c2114a7d5c35915c20561fd893cb1e07929e6b \
+            -t repo-mirror-sync/toolchain:L0 .
+
+      - name: 构建验证块镜像（self-dev 命名层内容，含 build.sh 触发 isolate 语义）
+        run: |
+          mkdir -p blocks/verify-block/repo blocks/verify-block/scripts
+          cat > blocks/verify-block/bindings.json <<JSON
+          {
+            "block": "verify-block",
+            "manifest_rev": "fuse-verify-${{ github.run_number }}",
+            "entries": [],
+            "repos": []
+          }
+          JSON
+          echo "verify-block sample (CI 融合验收)" > blocks/verify-block/repo/README.md
+          printf '#!/bin/sh\necho ci-verify-build\n' > blocks/verify-block/scripts/build.sh
+          docker build -f docker/block.Dockerfile \
+            --build-arg BUILD_BLOCK=verify-block \
+            --build-arg BLOCK_VERSION=${{ github.run_number }} \
+            -t "block-verify-block:${{ github.run_number }}" .
+
+      - name: 导出层内容树（docker export 抽 opt/scripts 子目录；系统目录不参与融合裁决）
+        run: |
+          mkdir -p out/layers/toolchain out/layers/self-dev
+          docker create --name tc-tmp repo-mirror-sync/toolchain:L0 > /dev/null
+          docker export tc-tmp | tar -x -C out/layers/toolchain opt
+          docker rm -f tc-tmp > /dev/null
+          docker create --name blk-tmp "block-verify-block:${{ github.run_number }}" > /dev/null
+          docker export blk-tmp | tar -x -C out/layers/self-dev opt
+          mkdir -p out/layers/self-dev/scripts
+          printf '#!/bin/sh\necho "verify-block build stub (CI 链路验证)"\n' > out/layers/self-dev/scripts/build.sh
+          docker rm -f blk-tmp > /dev/null
+          find out/layers -type f | sort
+
+      - name: 融合视图验收（fused 定义构建）
+        run: |
+          docker build -f docker/fused.Dockerfile \
+            --build-arg TOOLCHAIN_IMAGE=repo-mirror-sync/toolchain:L0 \
+            -t fused-view:verify .
+
+      - name: 非特权融合校验（ADR-011：用户态等价校验，落盘决策表）
+        run: |
+          python3 tools/fuse_verify.py \
+            --layers toolchain=out/layers/toolchain \
+            --layers self-dev=out/layers/self-dev \
+            --out out/fuse-verify
+          touch out/fuse-verify.passed
+
+      - name: FR-B4 加密→解密往返与哈希门禁（组合 ${{ inputs.combo_id }}）
+        env:
+          AGE_RECIPIENTS: ${{ secrets.AGE_RECIPIENTS }}
+        run: |
+          docker save "block-verify-block:${{ github.run_number }}" -o out/block.tar
+          sha256sum out/block.tar | tee out/block.tar.sha256
+          age -encrypt -r "$AGE_RECIPIENTS" -o out/block.tar.age out/block.tar
+          age -decrypt -i "$RUNNER_TEMP/age.key" -o out/block.roundtrip.tar out/block.tar.age
+          cmp out/block.tar out/block.roundtrip.tar
+          echo "加密往返哈希一致（组合=${{ inputs.combo_id }}）"
+          test -f out/fuse-verify.passed
+          rm -f out/block.tar out/block.roundtrip.tar
+
+      - name: 上传验收制品
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuse-verify-${{ github.run_number }}
+          path: |
+            solutions/repo-mirror-sync/out/block.tar.age
+            solutions/repo-mirror-sync/out/block.tar.sha256
+            solutions/repo-mirror-sync/out/fuse-verify/decisions.json
+          retention-days: 7
+
+      - name: 缓存治理审计（FR-A2；Actions cache 后端接入属后续，out/cache 当前为空=零清理）
+        run: PYTHONPATH=. python3 tools/cache_gc.py --cache-dir out/cache --out out
