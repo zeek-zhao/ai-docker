@@ -90,9 +90,13 @@ FB_DB="$FB_DB_DIR/filebrowser.db"
 mkdir -p "$FB_DB_DIR"
 chown -R "$DEV_USER:$DEV_USER" "$FB_DB_DIR"
 runuser -u "$DEV_USER" -- env HOME="/home/$DEV_USER" sh -c "\
-  filebrowser -d '$FB_DB' config init >/dev/null 2>&1 || true; \
-  filebrowser -d '$FB_DB' users add '$DEV_USER' '$DEV_PASSWORD' --perm.admin >/dev/null 2>&1 || \
-  filebrowser -d '$FB_DB' users update '$DEV_USER' -p '$DEV_PASSWORD' >/dev/null 2>&1 || true"
+  filebrowser -d '$FB_DB' config init >/dev/null 2>&1 || true
+  filebrowser -d '$FB_DB' config set --minimumPasswordLength 1 >/dev/null 2>&1 || true
+  if ! filebrowser -d '$FB_DB' users add '$DEV_USER' '$DEV_PASSWORD' --perm.admin >/dev/null 2>&1; then
+    filebrowser -d '$FB_DB' users update '$DEV_USER' -p '$DEV_PASSWORD' >/dev/null 2>&1 || \
+      echo '[devbox][ERROR] filebrowser 用户初始化失败，文件共享登录不可用' >&2
+  fi
+  exit 0"
 runuser -u "$DEV_USER" -- env HOME="/home/$DEV_USER" \
   filebrowser -d "$FB_DB" -a 127.0.0.1 -p 8081 -b /file-share -r "/home/$DEV_USER/data" &
 log "filebrowser 已启动 (127.0.0.1:8081, /file-share, root=/home/$DEV_USER/data)"
