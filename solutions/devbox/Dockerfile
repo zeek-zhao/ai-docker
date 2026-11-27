@@ -87,6 +87,7 @@ RUN mkdir -p "${NVM_DIR}" \
  && nvm alias default 'lts/*' \
  && npm config set registry "${NPM_REGISTRY}" \
  && npm install -g pnpm yarn typescript tsx eslint prettier vite \
+ && npm install -g --allow-scripts=@deepseek-ai/dsh-subprocess-local,koffi,node-pty,protobufjs "@deepseek-ai/dsh@0.2.2-rc.5" \
  && pnpm config set registry "${NPM_REGISTRY}" --global \
  && npm cache clean --force \
  && pnpm store prune
@@ -115,6 +116,30 @@ COPY config/caddy/authgate/ /src/authgate/
 RUN cd /src/authgate \
  && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o /out/auth-gate . \
  && rm -rf /src/authgate
+
+# 5) Bun（magpie 插件 workspace 依赖管理；restore-notes §0/§2.1）
+ARG BUN_VERSION=v1.3.4
+RUN curl -fsSL -o /tmp/bun.zip \
+      "${GH_PROXY}https://github.com/oven-sh/bun/releases/download/bun-${BUN_VERSION}/bun-linux-x64.zip" \
+ && python3 -m zipfile -e /tmp/bun.zip /tmp/ && mv /tmp/bun-linux-x64/bun /usr/local/bin/bun \
+ && chmod +x /usr/local/bin/bun && rm -rf /tmp/bun.zip /tmp/bun-linux-x64 \
+ && bun --version
+
+# 6) DSH desktop 档案骨架（TD-003/D12：快照结构 + 构建期 pnpm install；凭证零入库）
+#    产物 /out/skel-dsh/ → final 拷至 /etc/skel/.dsh/profiles/desktop/（useradd 时 cp -a 落 dev 家目录）
+COPY config/dsh/profile-package.json /out/skel-dsh/package.json
+COPY config/dsh/cordis.yml config/dsh/cordis.patch.yml /out/skel-dsh/
+RUN cd /out/skel-dsh \
+ && . "${NVM_DIR}/nvm.sh" && nvm use default >/dev/null \
+ && pnpm install --frozen-lockfile=false --prefer-offline 2>&1 | tail -3 \
+ && rm -rf node_modules/.cache && pnpm store prune
+
+# 7) Magpie 插件骨架（TD-003/Q3：page-free-tokens 本地 tgz 缺失已剔除，其余 bun install）
+#    产物 /out/skel-magpie/ → final 拷至 /etc/skel/.config/magpie/
+COPY config/magpie/plugins-package.json /out/skel-magpie/plugins/package.json
+COPY config/magpie/plugins.json config/magpie/mcp-hub-servers.json /out/skel-magpie/
+RUN cd /out/skel-magpie/plugins \
+ && bun install 2>&1 | tail -3
 
 # -----------------------------------------------------------------------------
 # Stage 2: config —— 交互环境：Oh My Zsh / powerlevel10k / LazyVim / tmux / 字体
@@ -199,6 +224,12 @@ RUN set -eux; \
 # 3) Caddy（caddyserver.com 官方在线构建，标准模块）
 RUN curl -fsSL -o /out/caddy "${CADDY_DOWNLOAD_URL}" && chmod +x /out/caddy
 
+# 3b) Magpie CLI（订阅池化网关，TD-003/D11：yetone/magpie release 单二进制，headless web+gateway 全功能）
+ARG MAGPIE_VERSION=v0.1.4984
+RUN curl -fsSL -o /out/magpie \
+      "${GH_PROXY}https://github.com/yetone/magpie/releases/download/${MAGPIE_VERSION}/magpie-cli-linux-amd64" \
+ && chmod +x /out/magpie
+
 # 4) HomePage —— 已移除发布包下载（gethomepage v1→v2 各 release 均不发布二进制资产，D5 变更）；
 #    改由独立阶段 homepage-src 从官方镜像提取，见 final 之前定义。
 
@@ -235,6 +266,10 @@ COPY --from=toolchain-build /opt/nvm /opt/nvm
 COPY --from=toolchain-build /usr/local/go /usr/local/go
 COPY --from=toolchain-build /out/gobin/ /usr/local/bin/
 COPY --from=toolchain-build /out/auth-gate /usr/local/bin/auth-gate
+COPY --from=toolchain-build /usr/local/bin/bun /usr/local/bin/bun
+COPY --from=toolchain-build /out/skel-dsh/ /etc/skel/.dsh/profiles/desktop/
+COPY --from=toolchain-build /out/skel-magpie/ /etc/skel/.config/magpie/
+COPY config/dsh/settings.yaml /etc/skel/.dsh/settings.yaml
 RUN chmod +x /usr/local/bin/* 2>/dev/null || true \
  && ln -sf /usr/local/go/bin/go /usr/local/bin/go \
  && ln -sf /usr/local/go/bin/gofmt /usr/local/bin/gofmt

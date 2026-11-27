@@ -137,28 +137,40 @@ else
   log "tailscale 未启用（ENABLE_TAILSCALE=0）"
 fi
 
-# 5.7 DSH 远程桌面网关（预留路由 + 启停开关，PLAN §6.6；本体 3080 不对外）
+# 5.7 DSH Web（TD-003：镜像内置 @deepseek-ai/dsh，dsh web 127.0.0.1:3081，dev 身份；PLAN §6.6）
 if [ "$ENABLE_DSH" = "1" ]; then
-  if [ -x /run/devbox/dsh/dsh ]; then
-    mkdir -p "$RUN_DIR/dsh" && touch "$RUN_DIR/dsh/enabled"
-    /run/devbox/dsh/dsh &
-    log "DSH 已启动 (127.0.0.1:3081 网关)"
+  DSH_BIN="$(ls /opt/nvm/versions/node/*/bin/dsh 2>/dev/null | head -1)"
+  NODE_BIN_DIR="$(dirname "${DSH_BIN:-/nonexist}" 2>/dev/null || true)"
+  if [ -n "$NODE_BIN_DIR" ] && [ -x "${NODE_BIN_DIR}/dsh" ]; then
+    mkdir -p "$RUN_DIR/dsh"
+    (
+      runuser -u "$DEV_USER" -- env \
+        HOME="/home/$DEV_USER" PATH="${NODE_BIN_DIR}:/usr/local/bin:/usr/bin:/bin" \
+        sh -c 'cd "$HOME" && dsh web --profile desktop --host 127.0.0.1 --port 3081 --no-open >/tmp/dsh-web.log 2>&1' \
+        || runuser -u "$DEV_USER" -- env \
+        HOME="/home/$DEV_USER" PATH="${NODE_BIN_DIR}:/usr/local/bin:/usr/bin:/bin" \
+        sh -c 'cd "$HOME" && dsh web --host 127.0.0.1 --port 3081 --no-open >/tmp/dsh-web.log 2>&1'
+    ) &
+    touch "$RUN_DIR/dsh/enabled"
+    log "DSH 已启动（dsh web desktop 档案，127.0.0.1:3081；日志 /tmp/dsh-web.log）"
   else
-    log "警告：ENABLE_DSH=1 但未注入可执行 /run/devbox/dsh/dsh，/dsh 将返回 503"
+    log "警告：ENABLE_DSH=1 但镜像内未找到 dsh 可执行，/dsh 将返回 503"
   fi
 else
   log "DSH 未启用（ENABLE_DSH=0）"
 fi
 
-# 5.8 Magpie AI 网关面板（预留路由 + 启停开关，PLAN §6.6；网关 API 3425 不对外）
+# 5.8 Magpie（TD-003/D11/D14：镜像内置 magpie-cli，web 面板 3430 + 网关 3425 单进程，dev 身份）
 if [ "$ENABLE_MAGPIE" = "1" ]; then
-  if [ -x /run/devbox/magpie/magpie ]; then
-    mkdir -p "$RUN_DIR/magpie" && touch "$RUN_DIR/magpie/enabled"
-    env MAGPIE_WEB_KEY="${MAGPIE_WEB_KEY:-}" MAGPIE_PORT="${MAGPIE_PORT:-3425}" \
-      MAGPIE_WEB_PORT="${MAGPIE_WEB_PORT:-3430}" /run/devbox/magpie/magpie &
-    log "Magpie 已启动 (面板 127.0.0.1:3430)"
+  if command -v magpie >/dev/null 2>&1; then
+    mkdir -p "$RUN_DIR/magpie"
+    runuser -u "$DEV_USER" -- env \
+      HOME="/home/$DEV_USER" MAGPIE_WEB_KEY="${MAGPIE_WEB_KEY:-devbox-magpie-key}" \
+      sh -c 'cd "$HOME" && magpie web --addr 127.0.0.1:3430 --no-open --gateway >/tmp/magpie-web.log 2>&1' &
+    touch "$RUN_DIR/magpie/enabled"
+    log "Magpie 已启动（面板 127.0.0.1:3430 + 网关 3425；web key 见 MAGPIE_WEB_KEY，默认 devbox-magpie-key）"
   else
-    log "警告：ENABLE_MAGPIE=1 但未注入可执行 /run/devbox/magpie/magpie，/magpie 将返回 503"
+    log "警告：ENABLE_MAGPIE=1 但镜像内未找到 magpie 可执行，/magpie 将返回 503"
   fi
 else
   log "Magpie 未启用（ENABLE_MAGPIE=0）"

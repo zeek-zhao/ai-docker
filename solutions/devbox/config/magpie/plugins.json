@@ -1,0 +1,35 @@
+{
+  "plugins": [
+    {
+      "spec": "@magpie-community/opencode-zcode-auth@latest"
+    },
+    {
+      "spec": "@magpie-community/opencode-workbuddy-auth@latest"
+    },
+    {
+      "spec": "github:mu-zi-lee/magpie-our-free-model"
+    },
+    {
+      "spec": "@magpie-community/tools-calc@latest",
+      "off": true
+    },
+    {
+      "spec": "@magpie-community/page-free-tokens@latest",
+      "off": true
+    },
+    {
+      "spec": "@magpie-community/page-usage@latest",
+      "off": true,
+      "options": {
+        "period": "30d",
+        "sort": "cost"
+      }
+    },
+    {
+      "spec": "@magpie-community/opencode-zed-auth@latest"
+    },
+    {
+      "spec": "@magpie-community/opencode-zen-free-auth@latest"
+    }
+  ]
+}

@@ -1,0 +1,954 @@
+{
+  "Atlassian": {
+    "key": "363c87c13a20a93f",
+    "tools": [
+      {
+        "name": "jira_get_user_profile",
+        "description": "Retrieve profile information for a specific Jira user."
+      },
+      {
+        "name": "jira_search_assignable_users",
+        "description": "Search Jira users assignable in a given project or issue. Use this when you have a display name / partial name / email fragment and need a concrete identifier (``name`` / ``key`` for Server/DC, ``acco…"
+      },
+      {
+        "name": "jira_get_issue_watchers",
+        "description": "Get the list of watchers for a Jira issue."
+      },
+      {
+        "name": "jira_add_watcher",
+        "description": "Add a user as a watcher to a Jira issue."
+      },
+      {
+        "name": "jira_remove_watcher",
+        "description": "Remove a user from watching a Jira issue."
+      },
+      {
+        "name": "jira_get_issue",
+        "description": "Get details of a specific Jira issue. Includes Epic links and relationship information. Use the ``include`` parameter to inline enrichments (remote_links, transitions, watchers, changelog, comments, w…"
+      },
+      {
+        "name": "jira_search",
+        "description": "Search Jira issues using JQL (Jira Query Language)."
+      },
+      {
+        "name": "jira_search_fields",
+        "description": "Search Jira fields by keyword with fuzzy match."
+      },
+      {
+        "name": "jira_get_field_options",
+        "description": "Get allowed option values for a custom field. Returns the list of valid options for select, multi-select, radio, checkbox, and cascading select custom fields. Cloud: Uses the Field Context Option API.…"
+      },
+      {
+        "name": "jira_get_project_issues",
+        "description": "Get all issues for a specific Jira project."
+      },
+      {
+        "name": "jira_get_transitions",
+        "description": "Get available status transitions for a Jira issue."
+      },
+      {
+        "name": "jira_get_worklog",
+        "description": "Get worklog entries for a Jira issue."
+      },
+      {
+        "name": "jira_download_attachments",
+        "description": "Download attachments from a Jira issue. Returns attachment contents as base64-encoded content so that they are available over the MCP protocol without requiring filesystem access on the server. Image…"
+      },
+      {
+        "name": "jira_get_issue_images",
+        "description": "Get all images attached to a Jira issue as inline image content. Filters attachments to images only (PNG, JPEG, GIF, WebP, SVG, BMP) and returns them as base64-encoded ImageContent that clients can re…"
+      },
+      {
+        "name": "jira_get_agile_boards",
+        "description": "Get jira agile boards by name, project key, or type."
+      },
+      {
+        "name": "jira_get_board_issues",
+        "description": "Get all issues linked to a specific board filtered by JQL."
+      },
+      {
+        "name": "jira_get_sprints_from_board",
+        "description": "Get jira sprints from board by state."
+      },
+      {
+        "name": "jira_get_sprint_issues",
+        "description": "Get jira issues from sprint."
+      },
+      {
+        "name": "jira_get_link_types",
+        "description": "Get all available issue link types."
+      },
+      {
+        "name": "jira_create_issue",
+        "description": "Create a new Jira issue with optional Epic link or parent for subtasks."
+      },
+      {
+        "name": "jira_batch_create_issues",
+        "description": "Create multiple Jira issues in a batch."
+      },
+      {
+        "name": "jira_batch_get_changelogs",
+        "description": "Get changelogs for multiple Jira issues (Cloud only)."
+      },
+      {
+        "name": "jira_update_issue",
+        "description": "Update an existing Jira issue including changing status, adding Epic links, updating fields, etc."
+      },
+      {
+        "name": "jira_assign_issue",
+        "description": "Assign a Jira issue to a user using the dedicated assignment endpoint. This is more reliable than setting assignee via update_issue, which is silently ignored by some Jira configurations. Uses PUT /is…"
+      },
+      {
+        "name": "jira_delete_issue",
+        "description": "Delete an existing Jira issue."
+      },
+      {
+        "name": "jira_move_issue",
+        "description": "Move a Jira issue to a different project (Jira Cloud only). Uses Jira Cloud's bulk move API to perform a cross-project move. The issue keeps its current issue type and may be assigned a new key in the…"
+      },
+      {
+        "name": "jira_add_comment",
+        "description": "Add a comment to a Jira issue."
+      },
+      {
+        "name": "jira_edit_comment",
+        "description": "Edit an existing comment on a Jira issue."
+      },
+      {
+        "name": "jira_add_worklog",
+        "description": "Add a worklog entry to a Jira issue."
+      },
+      {
+        "name": "jira_link_to_epic",
+        "description": "Link an existing issue to an epic."
+      },
+      {
+        "name": "jira_create_issue_link",
+        "description": "Create a link between two Jira issues."
+      },
+      {
+        "name": "jira_create_remote_issue_link",
+        "description": "Create a remote issue link (web link or Confluence link) for a Jira issue. This tool allows you to add web links and Confluence links to Jira issues. The links will appear in the issue's \"Links\" secti…"
+      },
+      {
+        "name": "jira_remove_issue_link",
+        "description": "Remove a link between two Jira issues."
+      },
+      {
+        "name": "jira_transition_issue",
+        "description": "Transition a Jira issue to a new status."
+      },
+      {
+        "name": "jira_create_sprint",
+        "description": "Create Jira sprint for a board."
+      },
+      {
+        "name": "jira_update_sprint",
+        "description": "Update jira sprint."
+      },
+      {
+        "name": "jira_add_issues_to_sprint",
+        "description": "Add issues to a Jira sprint."
+      },
+      {
+        "name": "jira_move_issues_to_backlog",
+        "description": "Move issues to the backlog, removing them from any sprint."
+      },
+      {
+        "name": "jira_get_project_issue_types",
+        "description": "Get available issue types for a Jira project. Returns the list of issue types (Bug, Task, Story, Epic, etc.) that can be created in the specified project. Use the returned issue type IDs with get_crea…"
+      },
+      {
+        "name": "jira_get_create_fields",
+        "description": "Get fields available for creating an issue of a specific type. Returns all fields (required and optional) for the given project and issue type, including field names, IDs, whether they're required, an…"
+      },
+      {
+        "name": "jira_get_project_versions",
+        "description": "Get all fix versions for a specific Jira project."
+      },
+      {
+        "name": "jira_get_project_components",
+        "description": "Get all components for a specific Jira project."
+      },
+      {
+        "name": "jira_get_all_projects",
+        "description": "Get all Jira projects accessible to the current user."
+      },
+      {
+        "name": "jira_search_projects",
+        "description": "Search for Jira projects by name or key prefix. Uses the projects picker endpoint to return a ranked list of matching projects without fetching every visible project on the instance."
+      },
+      {
+        "name": "jira_get_project_fields",
+        "description": "Get the fields available on issues of a project (the create schema), deduplicated across the project's issue types — i.e. which fields tickets in this project have, regardless of whether they are fill…"
+      },
+      {
+        "name": "jira_get_service_desk_for_project",
+        "description": "Get the Jira Service Desk associated with a project key. Server/Data Center only. Not available on Jira Cloud."
+      },
+      {
+        "name": "jira_get_service_desk_queues",
+        "description": "Get queues for a Jira Service Desk. Server/Data Center only. Not available on Jira Cloud."
+      },
+      {
+        "name": "jira_get_queue_issues",
+        "description": "Get issues from a Jira Service Desk queue. Server/Data Center only. Not available on Jira Cloud."
+      },
+      {
+        "name": "jira_get_request_types",
+        "description": "Get request types for a Jira Service Management service desk."
+      },
+      {
+        "name": "jira_get_request_type_fields",
+        "description": "Get field definitions for a Jira Service Management request type."
+      },
+      {
+        "name": "jira_create_customer_request",
+        "description": "Create a Jira Service Management customer request."
+      },
+      {
+        "name": "jira_create_version",
+        "description": "Create a new fix version in a Jira project."
+      },
+      {
+        "name": "jira_batch_create_versions",
+        "description": "Batch create multiple versions in a Jira project."
+      },
+      {
+        "name": "jira_update_version",
+        "description": "Update an existing fix version in a Jira project. Only fields explicitly provided are modified; other attributes of the version are left untouched. Useful for archiving/unarchiving versions, renaming,…"
+      },
+      {
+        "name": "jira_get_issue_proforma_forms",
+        "description": "Get all ProForma forms associated with a Jira issue. Uses the new Jira Forms REST API. Form IDs are returned as UUIDs."
+      },
+      {
+        "name": "jira_get_proforma_form_details",
+        "description": "Get detailed information about a specific ProForma form. Uses the new Jira Forms REST API. Returns form details including ADF design structure."
+      },
+      {
+        "name": "jira_update_proforma_form_answers",
+        "description": "Update form field answers using the Jira Forms REST API. This is the primary method for updating form data. Each answer object must specify the question ID, answer type, and value. **⚠️ KNOWN LIMITATI…"
+      },
+      {
+        "name": "jira_get_issue_dates",
+        "description": "Get date information and status transition history for a Jira issue. Returns dates (created, updated, due date, resolution date) and optionally status change history with time tracking for workflow an…"
+      },
+      {
+        "name": "jira_get_issue_sla",
+        "description": "Calculate SLA metrics for a Jira issue. Computes various time-based metrics including cycle time, lead time, time spent in each status, due date compliance, and more. Working hours can be configured v…"
+      },
+      {
+        "name": "jira_get_issue_development_info",
+        "description": "Get development information (PRs, commits, branches) linked to a Jira issue. This retrieves the development panel information that shows linked pull requests, branches, and commits from connected sour…"
+      },
+      {
+        "name": "jira_get_issues_development_info",
+        "description": "Get development information for multiple Jira issues. Batch retrieves development panel information (PRs, commits, branches) for multiple issues at once."
+      },
+      {
+        "name": "jira_get_project_epic_hierarchy",
+        "description": "Group a project's epics under their cross-project parent issues. Fetches all epics in the project, detects their parent issue via the parent field or inward issue links, then groups them by parent. Ep…"
+      },
+      {
+        "name": "jira_get_cross_project_dependencies",
+        "description": "Find all cross-project issue links for a project. Scans issues in the project, extracts every issue link whose target belongs to a different project, and groups them by target project and link type. U…"
+      },
+      {
+        "name": "confluence_search",
+        "description": "Search Confluence content using simple terms or CQL."
+      },
+      {
+        "name": "confluence_get_page",
+        "description": "Get content of a specific Confluence page by its ID, or by its title and space key."
+      },
+      {
+        "name": "confluence_get_page_children",
+        "description": "Get child pages and folders of a specific Confluence page."
+      },
+      {
+        "name": "confluence_get_space_page_tree",
+        "description": "Get page hierarchy for a Confluence space as a flat list. Returns pages with parent_id and depth attributes for token-efficient processing. Filter by depth to focus on relevant sections, or find pages…"
+      },
+      {
+        "name": "confluence_get_comments",
+        "description": "Get comments for a specific Confluence page."
+      },
+      {
+        "name": "confluence_get_labels",
+        "description": "Get labels for Confluence content (pages, blog posts, or attachments)."
+      },
+      {
+        "name": "confluence_add_label",
+        "description": "Add label to Confluence content (pages, blog posts, or attachments). Useful for: - Categorizing attachments (e.g., 'screenshot', 'diagram', 'legal-doc') - Tracking status (e.g., 'approved', 'needs-rev…"
+      },
+      {
+        "name": "confluence_create_page",
+        "description": "Create a new Confluence page."
+      },
+      {
+        "name": "confluence_update_page",
+        "description": "Update an existing Confluence page."
+      },
+      {
+        "name": "confluence_update_page_section",
+        "description": "Update a single section of a Confluence page without affecting the rest. Replaces only the content beneath a named heading, leaving all other sections, macros, layouts, and Confluence-specific element…"
+      },
+      {
+        "name": "confluence_delete_page",
+        "description": "Delete an existing Confluence page."
+      },
+      {
+        "name": "confluence_move_page",
+        "description": "Move a Confluence page to a new parent or space."
+      },
+      {
+        "name": "confluence_add_comment",
+        "description": "Add a comment to a Confluence page."
+      },
+      {
+        "name": "confluence_reply_to_comment",
+        "description": "Reply to an existing comment thread on a Confluence page."
+      },
+      {
+        "name": "confluence_get_inline_comments",
+        "description": "Get all inline comments for a Confluence page."
+      },
+      {
+        "name": "confluence_add_inline_comment",
+        "description": "Add an inline comment anchored to a text selection on a page."
+      },
+      {
+        "name": "confluence_search_user",
+        "description": "Search Confluence users using CQL (Cloud) or group member API (Server/DC)."
+      },
+      {
+        "name": "confluence_get_page_history",
+        "description": "Get a historical version of a specific Confluence page."
+      },
+      {
+        "name": "confluence_get_page_diff",
+        "description": "Get a unified diff between two versions of a Confluence page."
+      },
+      {
+        "name": "confluence_get_page_views",
+        "description": "Get view statistics for a Confluence page. Note: This tool is only available for Confluence Cloud. Server/Data Center instances do not support the Analytics API."
+      },
+      {
+        "name": "confluence_upload_attachment",
+        "description": "Upload an attachment to Confluence content (page or blog post). Provide the file either as a server-readable path ('file_path') or as base64-encoded content ('content_base64' together with 'filename')…"
+      },
+      {
+        "name": "confluence_upload_attachments",
+        "description": "Upload multiple attachments to Confluence content in a single operation. More efficient than calling upload_attachment multiple times. If files with the same names exist, new versions are created auto…"
+      },
+      {
+        "name": "confluence_get_attachments",
+        "description": "List all attachments for a Confluence content item (page or blog post). Returns metadata about attachments including: - Attachment ID, title, and file type - File size and download URL - Creation/modi…"
+      },
+      {
+        "name": "confluence_download_attachment",
+        "description": "Download an attachment from Confluence as an embedded resource. Returns the attachment content as a base64-encoded embedded resource so that it is available over the MCP protocol without requiring fil…"
+      },
+      {
+        "name": "confluence_download_content_attachments",
+        "description": "Download all attachments for a Confluence content item as embedded resources. Returns attachment contents as base64-encoded embedded resources so that they are available over the MCP protocol without…"
+      },
+      {
+        "name": "confluence_delete_attachment",
+        "description": "Permanently delete an attachment from Confluence. **Warning**: This action cannot be undone! The attachment and ALL its versions will be permanently deleted. Use this tool to: - Remove outdated or inc…"
+      },
+      {
+        "name": "confluence_get_page_images",
+        "description": "Get all images attached to a Confluence page as inline image content. Filters attachments to images only (PNG, JPEG, GIF, WebP, SVG, BMP) and returns them as base64-encoded ImageContent that clients c…"
+      },
+      {
+        "name": "confluence_list_page_templates",
+        "description": "List Confluence page content templates. This operation is only available for Confluence Cloud. Returns template metadata (ID, name, description, type) without the full body. Use confluence_get_page_te…"
+      },
+      {
+        "name": "confluence_get_page_template",
+        "description": "Get a Cloud page template by ID, including its storage-format body."
+      },
+      {
+        "name": "confluence_create_page_from_template",
+        "description": "Create a new Cloud page pre-populated with a template's body. This operation is only available for Confluence Cloud. Fetches the named template and creates a page with its storage-format content. The…"
+      },
+      {
+        "name": "confluence_get_page_restrictions",
+        "description": "Get view and edit restrictions for a Confluence page. Returns the current restriction lists for the read (view) and update (edit) operations. An empty list means the page is unrestricted for that oper…"
+      },
+      {
+        "name": "confluence_set_page_restrictions",
+        "description": "Set view and edit restrictions on a Confluence page. Replaces all existing restrictions with the provided lists. Omitting all parameters (or passing empty lists) removes all restrictions."
+      },
+      {
+        "name": "confluence_copy_page",
+        "description": "Copy a Confluence page to a new location. On Confluence Cloud the native copy endpoint is used. On Server/Data Center the page body is fetched and a new page is created manually (attachments are not c…"
+      },
+      {
+        "name": "confluence_check_content_permissions",
+        "description": "Check whether a user or group can perform an operation on specific content. Wraps POST /wiki/rest/api/content/{id}/permission/check. Note: This tool is only available for Confluence Cloud. Server/Data…"
+      },
+      {
+        "name": "confluence_get_space_permissions",
+        "description": "List all permission assignments for a Confluence space. Wraps GET /wiki/api/v2/spaces/{id}/permissions. Note: This tool is only available for Confluence Cloud. Server/Data Center instances use differe…"
+      }
+    ]
+  },
+  "Gerrit": {
+    "key": "1fc01fed2c4505f4",
+    "tools": [
+      {
+        "name": "query_changes",
+        "description": "Searches for CLs matching a given query string."
+      },
+      {
+        "name": "query_changes_by_date_and_filters",
+        "description": "Searches for Gerrit changes within a specified date range, optionally filtered by project, a substring in the commit message, and change status. This tool provides a flexible way to find changes based…"
+      },
+      {
+        "name": "get_change_details",
+        "description": "Retrieves a comprehensive summary of a single CL."
+      },
+      {
+        "name": "get_commit_message",
+        "description": "Gets the commit message of a change from the current patch set."
+      },
+      {
+        "name": "list_change_files",
+        "description": "Lists all files modified in the most recent patch set of a CL."
+      },
+      {
+        "name": "get_file_diff",
+        "description": "Retrieves the diff for a single, specified file within a CL."
+      },
+      {
+        "name": "list_change_comments",
+        "description": "list_change_comments is useful for reviewing feedback, reading comments on a change, analyzing comments, and responding to comments."
+      },
+      {
+        "name": "add_reviewer",
+        "description": "Adds a user or a group to a CL as either a reviewer or a CC."
+      },
+      {
+        "name": "set_ready_for_review",
+        "description": "Sets a CL as ready for review."
+      },
+      {
+        "name": "set_work_in_progress",
+        "description": "Sets a CL as work-in-progress."
+      },
+      {
+        "name": "revert_change",
+        "description": "Reverts a single change, creating a new CL."
+      },
+      {
+        "name": "revert_submission",
+        "description": "Reverts an entire submission, creating one or more new CLs."
+      },
+      {
+        "name": "create_change",
+        "description": "Creates a new change in Gerrit."
+      },
+      {
+        "name": "set_topic",
+        "description": "Sets the topic of a change. An empty string deletes the topic."
+      },
+      {
+        "name": "changes_submitted_together",
+        "description": "Computes and lists all changes that would be submitted together with a given CL."
+      },
+      {
+        "name": "suggest_reviewers",
+        "description": "Suggests reviewers for a change based on a query."
+      },
+      {
+        "name": "abandon_change",
+        "description": "Abandons a change."
+      },
+      {
+        "name": "get_most_recent_cl",
+        "description": "Gets the most recent CL for a user."
+      },
+      {
+        "name": "get_bugs_from_cl",
+        "description": "Extracts bug IDs from the commit message of a CL."
+      },
+      {
+        "name": "post_review_comment",
+        "description": "Posts a review comment on a CL. Supports file-level comments (via comments array) and CL-level comments (via message), as well as labels."
+      }
+    ]
+  },
+  "GitHub": {
+    "key": "7f739970d3a88482",
+    "title": "GitHub MCP Server",
+    "says": "The GitHub MCP Server provides tools to interact with GitHub platform.",
+    "tools": [
+      {
+        "name": "add_comment_to_pending_review",
+        "description": "Add review comment to the requester's latest pending pull request review. A pending review needs to already exist to call this (check with the user if not sure)."
+      },
+      {
+        "name": "add_issue_comment",
+        "description": "Add a comment and/or reaction to a specific issue or issue comment in a GitHub repository. Use this tool with pull requests as well (in this case pass pull request number as issue_number), but only if…"
+      },
+      {
+        "name": "add_reply_to_pull_request_comment",
+        "description": "Add a reply and/or reaction to an existing pull request comment. This can create a new comment linked as a reply to the specified comment, add an emoji reaction to the specified comment, or do both. A…"
+      },
+      {
+        "name": "assign_copilot_to_issue",
+        "description": "Assign Copilot to a specific issue in a GitHub repository. This tool can help with the following outcomes: - a Pull Request created with source code changes to resolve the issue More information can b…"
+      },
+      {
+        "name": "create_branch",
+        "description": "Create a new branch in a GitHub repository"
+      },
+      {
+        "name": "create_or_update_file",
+        "description": "Create or update a single file in a GitHub repository. If updating, you should provide the SHA of the file you want to update. Use this tool to create or update a file in a GitHub repository remotely;…"
+      },
+      {
+        "name": "create_pull_request",
+        "description": "Create a new pull request in a GitHub repository."
+      },
+      {
+        "name": "create_repository",
+        "description": "Create a new GitHub repository in your account or specified organization"
+      },
+      {
+        "name": "delete_file",
+        "description": "Delete a file from a GitHub repository"
+      },
+      {
+        "name": "fork_repository",
+        "description": "Fork a GitHub repository to your account or specified organization"
+      },
+      {
+        "name": "get_commit",
+        "description": "Get details for a commit from a GitHub repository"
+      },
+      {
+        "name": "get_file_contents",
+        "description": "Get the contents of a file or directory from a GitHub repository"
+      },
+      {
+        "name": "get_label",
+        "description": "Get a specific label from a repository."
+      },
+      {
+        "name": "get_latest_release",
+        "description": "Get the latest release in a GitHub repository"
+      },
+      {
+        "name": "get_me",
+        "description": "Get details of the authenticated GitHub user. Use this when a request is about the user's own profile for GitHub. Or when information is missing to build other tool calls."
+      },
+      {
+        "name": "get_release_by_tag",
+        "description": "Get a specific release by its tag name in a GitHub repository"
+      },
+      {
+        "name": "get_tag",
+        "description": "Get details about a specific git tag in a GitHub repository"
+      },
+      {
+        "name": "get_team_members",
+        "description": "Get member usernames of a specific team in an organization. Limited to organizations accessible with current credentials"
+      },
+      {
+        "name": "get_teams",
+        "description": "Get details of the teams the user is a member of. Limited to organizations accessible with current credentials"
+      },
+      {
+        "name": "issue_read",
+        "description": "Get information about a specific issue in a GitHub repository."
+      },
+      {
+        "name": "issue_write",
+        "description": "Create a new or update an existing issue in a GitHub repository."
+      },
+      {
+        "name": "list_branches",
+        "description": "List branches in a GitHub repository"
+      },
+      {
+        "name": "list_commits",
+        "description": "Get list of commits of a branch in a GitHub repository. Returns at least 30 results per page by default, but can return more if specified using the perPage parameter (up to 100)."
+      },
+      {
+        "name": "list_issue_fields",
+        "description": "List issue fields for a repository or organization. Returns field definitions including name, type (text, number, date, single_select), and for single_select fields the list of valid option names. Whe…"
+      },
+      {
+        "name": "list_issue_types",
+        "description": "List supported issue types for a repository or its owner organization. When repo is omitted, returns org-level issue types directly."
+      },
+      {
+        "name": "list_issues",
+        "description": "List issues in a GitHub repository. For pagination, use the 'endCursor' from the previous response's 'pageInfo' in the 'after' parameter."
+      },
+      {
+        "name": "list_pull_requests",
+        "description": "List pull requests in a GitHub repository. If the user specifies an author, then DO NOT use this tool and use the search_pull_requests tool instead."
+      },
+      {
+        "name": "list_releases",
+        "description": "List releases in a GitHub repository"
+      },
+      {
+        "name": "list_repository_collaborators",
+        "description": "List collaborators of a GitHub repository. Results are paginated; the response includes `nextPage`, `prevPage`, `firstPage`, and `lastPage` fields. To get the next page, use the `nextPage` value as th…"
+      },
+      {
+        "name": "list_tags",
+        "description": "List git tags in a GitHub repository"
+      },
+      {
+        "name": "merge_pull_request",
+        "description": "Merge a pull request in a GitHub repository."
+      },
+      {
+        "name": "pull_request_read",
+        "description": "Get information on a specific pull request in GitHub repository."
+      },
+      {
+        "name": "pull_request_review_write",
+        "description": "Create and/or submit, delete review of a pull request. Available methods: - create: Create a new review of a pull request. If \"event\" parameter is provided, the review is submitted. If \"event\" is omit…"
+      },
+      {
+        "name": "push_files",
+        "description": "Push multiple files to a GitHub repository in a single commit"
+      },
+      {
+        "name": "request_copilot_review",
+        "description": "Request a GitHub Copilot code review for a pull request. Use this for automated feedback on pull requests, usually before requesting a human reviewer."
+      },
+      {
+        "name": "search_code",
+        "description": "Fast and precise code search across ALL GitHub repositories using GitHub's native search engine. Best for finding exact symbols, functions, classes, or specific code patterns."
+      },
+      {
+        "name": "search_commits",
+        "description": "Search for commits across GitHub repositories using GitHub's commit search syntax. Useful for finding specific changes, authors, or messages across one or many repositories. Searches the default branc…"
+      },
+      {
+        "name": "search_issues",
+        "description": "Search issues using natural-language semantic matching. Best for conceptual or paraphrased queries (e.g. \"login fails after password reset\"). Already scoped to is:issue."
+      },
+      {
+        "name": "search_pull_requests",
+        "description": "Search for pull requests in GitHub repositories using issues search syntax already scoped to is:pr"
+      },
+      {
+        "name": "search_repositories",
+        "description": "Find GitHub repositories by name, description, readme, topics, or other metadata. Perfect for discovering projects, finding examples, or locating specific repositories across GitHub."
+      },
+      {
+        "name": "search_users",
+        "description": "Find GitHub users by username, real name, or other profile information. Useful for locating developers, contributors, or team members."
+      },
+      {
+        "name": "sub_issue_write",
+        "description": "Add a sub-issue to a parent issue in a GitHub repository."
+      },
+      {
+        "name": "ui_get",
+        "description": "Fetch UI data for MCP Apps (labels, assignees, milestones, issue types, branches, issue fields, reviewers)."
+      },
+      {
+        "name": "update_issue_comment",
+        "description": "Update the body of an existing issue or pull request conversation comment. This tool cannot update pull request review comments."
+      },
+      {
+        "name": "update_pull_request",
+        "description": "Update an existing pull request in a GitHub repository."
+      },
+      {
+        "name": "update_pull_request_branch",
+        "description": "Update the branch of a pull request with the latest changes from the base branch."
+      }
+    ]
+  },
+  "jenkins": {
+    "key": "154a9cb4ccfb2428",
+    "tools": [
+      {
+        "name": "triggerBuild",
+        "description": "Trigger a Jenkins job build with file and regular parameters"
+      },
+      {
+        "name": "stopBuild",
+        "description": "Stop/kill a running Jenkins build"
+      },
+      {
+        "name": "scheduleBuild",
+        "description": "Schedule a Jenkins build with file and regular parameters to run at a specific time"
+      },
+      {
+        "name": "updateBuild",
+        "description": "Update build display name and/or description"
+      },
+      {
+        "name": "getJob",
+        "description": "Get information about a Jenkins job"
+      },
+      {
+        "name": "getBuild",
+        "description": "Get information about a specific build or the last build"
+      },
+      {
+        "name": "getJobs",
+        "description": "Get a paginated list of Jenkins jobs"
+      },
+      {
+        "name": "whoAmI",
+        "description": "Get information about the current authenticated user"
+      },
+      {
+        "name": "getStatus",
+        "description": "Get Jenkins instance status and health information"
+      },
+      {
+        "name": "listBuildArtifacts",
+        "description": "List all artifacts from a specific build or the last build"
+      },
+      {
+        "name": "readBuildArtifact",
+        "description": "Read the content of a specific build artifact"
+      },
+      {
+        "name": "cancelQueuedBuild",
+        "description": "Cancel a pending/queued Jenkins build that hasn't started yet"
+      },
+      {
+        "name": "getQueueInfo",
+        "description": "Get information about queued builds"
+      },
+      {
+        "name": "getQueueItem",
+        "description": "Get a specific queued item by queueId and see whether it transitioned to a build"
+      }
+    ]
+  },
+  "calc": {
+    "key": "ae58220995e5b3b8",
+    "tools": []
+  },
+  "github-2": {
+    "key": "675ec69d25b6c19f",
+    "title": "GitHub MCP Server",
+    "says": "The GitHub MCP Server provides tools to interact with GitHub platform.",
+    "tools": [
+      {
+        "name": "add_comment_to_pending_review",
+        "description": "Add review comment to the requester's latest pending pull request review. A pending review needs to already exist to call this (check with the user if not sure)."
+      },
+      {
+        "name": "add_issue_comment",
+        "description": "Add a comment and/or reaction to a specific issue or issue comment in a GitHub repository. Use this tool with pull requests as well (in this case pass pull request number as issue_number), but only if…"
+      },
+      {
+        "name": "add_reply_to_pull_request_comment",
+        "description": "Add a reply and/or reaction to an existing pull request comment. This can create a new comment linked as a reply to the specified comment, add an emoji reaction to the specified comment, or do both. A…"
+      },
+      {
+        "name": "create_branch",
+        "description": "Create a new branch in a GitHub repository"
+      },
+      {
+        "name": "create_or_update_file",
+        "description": "Create or update a single file in a GitHub repository. If updating, you should provide the SHA of the file you want to update. Use this tool to create or update a file in a GitHub repository remotely;…"
+      },
+      {
+        "name": "create_pull_request",
+        "description": "Create a new pull request in a GitHub repository."
+      },
+      {
+        "name": "create_repository",
+        "description": "Create a new GitHub repository in your account or specified organization"
+      },
+      {
+        "name": "delete_file",
+        "description": "Delete a file from a GitHub repository"
+      },
+      {
+        "name": "fork_repository",
+        "description": "Fork a GitHub repository to your account or specified organization"
+      },
+      {
+        "name": "get_commit",
+        "description": "Get details for a commit from a GitHub repository"
+      },
+      {
+        "name": "get_file_contents",
+        "description": "Get the contents of a file or directory from a GitHub repository"
+      },
+      {
+        "name": "get_label",
+        "description": "Get a specific label from a repository."
+      },
+      {
+        "name": "get_latest_release",
+        "description": "Get the latest release in a GitHub repository"
+      },
+      {
+        "name": "get_me",
+        "description": "Get details of the authenticated GitHub user. Use this when a request is about the user's own profile for GitHub. Or when information is missing to build other tool calls."
+      },
+      {
+        "name": "get_release_by_tag",
+        "description": "Get a specific release by its tag name in a GitHub repository"
+      },
+      {
+        "name": "get_tag",
+        "description": "Get details about a specific git tag in a GitHub repository"
+      },
+      {
+        "name": "get_team_members",
+        "description": "Get member usernames of a specific team in an organization. Limited to organizations accessible with current credentials"
+      },
+      {
+        "name": "get_teams",
+        "description": "Get details of the teams the user is a member of. Limited to organizations accessible with current credentials"
+      },
+      {
+        "name": "issue_read",
+        "description": "Get information about a specific issue in a GitHub repository."
+      },
+      {
+        "name": "issue_write",
+        "description": "Create a new or update an existing issue in a GitHub repository."
+      },
+      {
+        "name": "list_branches",
+        "description": "List branches in a GitHub repository"
+      },
+      {
+        "name": "list_commits",
+        "description": "Get list of commits of a branch in a GitHub repository. Returns at least 30 results per page by default, but can return more if specified using the perPage parameter (up to 100)."
+      },
+      {
+        "name": "list_issue_fields",
+        "description": "List issue fields for a repository or organization. Returns field definitions including name, type (text, number, date, single_select), and for single_select fields the list of valid option names. Whe…"
+      },
+      {
+        "name": "list_issue_types",
+        "description": "List supported issue types for a repository or its owner organization. When repo is omitted, returns org-level issue types directly."
+      },
+      {
+        "name": "list_issues",
+        "description": "List issues in a GitHub repository. For pagination, use the 'endCursor' from the previous response's 'pageInfo' in the 'after' parameter."
+      },
+      {
+        "name": "list_pull_requests",
+        "description": "List pull requests in a GitHub repository. If the user specifies an author, then DO NOT use this tool and use the search_pull_requests tool instead."
+      },
+      {
+        "name": "list_releases",
+        "description": "List releases in a GitHub repository"
+      },
+      {
+        "name": "list_repository_collaborators",
+        "description": "List collaborators of a GitHub repository. Results are paginated; the response includes `nextPage`, `prevPage`, `firstPage`, and `lastPage` fields. To get the next page, use the `nextPage` value as th…"
+      },
+      {
+        "name": "list_tags",
+        "description": "List git tags in a GitHub repository"
+      },
+      {
+        "name": "merge_pull_request",
+        "description": "Merge a pull request in a GitHub repository."
+      },
+      {
+        "name": "pull_request_read",
+        "description": "Get information on a specific pull request in GitHub repository."
+      },
+      {
+        "name": "pull_request_review_write",
+        "description": "Create and/or submit, delete review of a pull request. Available methods: - create: Create a new review of a pull request. If \"event\" parameter is provided, the review is submitted. If \"event\" is omit…"
+      },
+      {
+        "name": "push_files",
+        "description": "Push multiple files to a GitHub repository in a single commit"
+      },
+      {
+        "name": "request_copilot_review",
+        "description": "Request a GitHub Copilot code review for a pull request. Use this for automated feedback on pull requests, usually before requesting a human reviewer."
+      },
+      {
+        "name": "run_secret_scanning",
+        "description": "Scan files, content, or recent changes for secrets such as API keys, passwords, tokens, and credentials. This tool is intended for targeted scans of specific files, snippets, or diffs provided directl…"
+      },
+      {
+        "name": "search_code",
+        "description": "Fast and precise code search across ALL GitHub repositories using GitHub's native search engine. Best for finding exact symbols, functions, classes, or specific code patterns."
+      },
+      {
+        "name": "search_commits",
+        "description": "Search for commits across GitHub repositories using GitHub's commit search syntax. Useful for finding specific changes, authors, or messages across one or many repositories. Searches the default branc…"
+      },
+      {
+        "name": "search_issues",
+        "description": "Search issues using natural-language semantic matching. Best for conceptual or paraphrased queries (e.g. \"login fails after password reset\"). Already scoped to is:issue. Filter by planning status with…"
+      },
+      {
+        "name": "search_pull_requests",
+        "description": "Search for pull requests in GitHub repositories using issues search syntax already scoped to is:pr"
+      },
+      {
+        "name": "search_repositories",
+        "description": "Find GitHub repositories by name, description, readme, topics, or other metadata. Perfect for discovering projects, finding examples, or locating specific repositories across GitHub."
+      },
+      {
+        "name": "search_users",
+        "description": "Find GitHub users by username, real name, or other profile information. Useful for locating developers, contributors, or team members."
+      },
+      {
+        "name": "sub_issue_write",
+        "description": "Add a sub-issue to a parent issue in a GitHub repository."
+      },
+      {
+        "name": "ui_get",
+        "description": "Fetch UI data for MCP Apps (labels, assignees, milestones, issue types, branches, issue fields, reviewers)."
+      },
+      {
+        "name": "update_issue_comment",
+        "description": "Update the body of an existing issue or pull request conversation comment. This tool cannot update pull request review comments."
+      },
+      {
+        "name": "update_pull_request",
+        "description": "Update an existing pull request in a GitHub repository."
+      },
+      {
+        "name": "update_pull_request_branch",
+        "description": "Update the branch of a pull request with the latest changes from the base branch."
+      }
+    ]
+  },
+  "magpie-memory": {
+    "key": "3408e004c333dd89",
+    "title": "Magpie Memory",
+    "says": "Memory shared by every agent the user works with. Search it before asking the user something they may have said before; save what they ask to be remembered, and preferences, rules and corrections they state; forget what they say no longer holds.",
+    "tools": [
+      {
+        "name": "memory_search",
+        "description": "Searches what is remembered from earlier conversations with the user, in any agent: their preferences, rules, facts about them and their projects, how things are done. Search before asking the user so…"
+      },
+      {
+        "name": "memory_save",
+        "description": "Remembers one thing for later conversations, in every agent: what the user asks you to remember, a preference or rule they state, a correction they make, a fact about them or the project that will sti…"
+      },
+      {
+        "name": "memory_forget",
+        "description": "Sets a memory aside when the user says it is wrong or no longer holds. It is kept for the user to look at, but no longer searched or given to agents."
+      },
+      {
+        "name": "memory_context",
+        "description": "Says who the memory server takes you for: the agent \"only for you\" is kept for, the project \"this project\" means, how each was found, and where a search looks. Check it before saving or moving memorie…"
+      }
+    ]
+  }
+}

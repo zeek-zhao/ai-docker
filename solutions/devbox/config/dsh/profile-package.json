@@ -1,0 +1,64 @@
+{
+  "name": "dsh-profile-desktop",
+  "private": true,
+  "dependencies": {
+    "@deepseek-ai/dsh-experimental-voice-input-bundle": "0.1.7-alpha.1",
+    "@deepseek-harness-tui/dsh-tui": "0.20.1",
+    "@liustack/modlens": "3.27.5",
+    "@liustack/modsearch": "5.10.14",
+    "@michengai/dsh-automation": "1.1.1",
+    "@michengai/dsh-skills-manager": "1.4.11",
+    "@y1x1n/dsh-prompt-optimizer": "0.6.6",
+    "@zilliz/memsearch-dsh": "0.1.10",
+    "billion-context": "0.1.216",
+    "ds-bot": "0.3.9",
+    "ds-harness-remote": "0.6.7",
+    "dsh-at-file": "0.6.3",
+    "dsh-better-sidebar": "0.32.1",
+    "dsh-bot-toggle": "https://github.com/JackWoods-code/dsh-bot-toggle/releases/download/v0.4.1/dsh-bot-toggle-0.4.1.tgz",
+    "dsh-context": "0.87.0",
+    "dsh-genui": "0.3.4",
+    "dsh-image-gen": "0.11.4",
+    "dsh-remote": "1.1.2",
+    "dsh-rtk-workbench": "1.2.0",
+    "dsh-session-manager": "0.7.11",
+    "dsh-voice-mode": "0.7.44",
+    "dsh-wsl-suite": "0.1.12",
+    "dshmarket": "1.73.19"
+  },
+  "dsh": {
+    "profile": {
+      "bundles": [
+        "@deepseek-ai/dsh-base",
+        "@deepseek-ai/dsh-web-app",
+        "@deepseek-ai/dsh-experimental-plugin-market-bundle",
+        "dsh-bot-toggle",
+        "@deepseek-ai/dsh-experimental-auto-review",
+        "@deepseek-ai/dsh-personalized-recommendations",
+        "@deepseek-ai/dsh-experimental-terminal-bundle",
+        "dshmarket",
+        "@deepseek-harness-tui/dsh-tui",
+        "@deepseek-ai/dsh-experimental-forge-bundle",
+        "dsh-better-sidebar",
+        "dsh-remote",
+        "@liustack/modlens",
+        "@liustack/modsearch",
+        "dsh-rtk-workbench",
+        "dsh-wsl-suite",
+        "billion-context",
+        "dsh-at-file",
+        "@zilliz/memsearch-dsh",
+        "dsh-image-gen",
+        "dsh-context",
+        "dsh-session-manager",
+        "ds-harness-remote",
+        "@michengai/dsh-automation",
+        "@y1x1n/dsh-prompt-optimizer",
+        "ds-bot",
+        "dsh-genui",
+        "dsh-voice-mode"
+      ]
+    }
+  }
+}
+

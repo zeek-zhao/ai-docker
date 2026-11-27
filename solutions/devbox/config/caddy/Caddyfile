@@ -41,18 +41,22 @@
 			reverse_proxy 127.0.0.1:8081
 		}
 
-		# /dsh → DSH 远程访问网关（本体 3080 不对外；enabled 标记由 entrypoint 写入）
+		# /dsh → DSH Web（dsh web，镜像内置；enabled 标记由 entrypoint 写入）
 		handle /dsh/* {
 			@dsh_disabled not file /run/devbox/dsh/enabled
-			respond @dsh_disabled "DSH 未启用或未注入（compose: ENABLE_DSH=1）" 503
-			reverse_proxy 127.0.0.1:3081
+			respond @dsh_disabled "DSH 未启用（compose: ENABLE_DSH=1）" 503
+			reverse_proxy 127.0.0.1:3081 {
+				header_up Host 127.0.0.1:3081
+			}
 		}
 
-		# /magpie → Magpie 面板（网关 API 3425 不对外；enabled 标记由 entrypoint 写入）
+		# /magpie → Magpie 面板（镜像内置；网关 API 3425 不对外；enabled 标记由 entrypoint 写入）
 		handle /magpie/* {
 			@magpie_disabled not file /run/devbox/magpie/enabled
-			respond @magpie_disabled "Magpie 未启用或未注入（compose: ENABLE_MAGPIE=1）" 503
-			reverse_proxy 127.0.0.1:3430
+			respond @magpie_disabled "Magpie 未启用（compose: ENABLE_MAGPIE=1）" 503
+			reverse_proxy 127.0.0.1:3430 {
+				header_up Host 127.0.0.1:3430
+			}
 		}
 
 		# / → HomePage 导航首页（无匹配器兜底，必须置于 route 末位，否则吞掉上述全部路由）
