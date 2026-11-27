@@ -93,8 +93,8 @@ mkdir -p "$FB_DB_DIR"
 chown -R "$DEV_USER:$DEV_USER" "$FB_DB_DIR"
 FB_HASH="$(filebrowser hash "$DEV_PASSWORD" 2>/dev/null | tail -1)"
 FB_USERS_JSON="/tmp/devbox-fb-users.json"
-printf '[{"username":"%s","password":"%s","scope":"/home/%s/data","perm":{"admin":true}}]\n' \
-  "$DEV_USER" "$FB_HASH" "$DEV_USER" > "$FB_USERS_JSON"
+printf '[{"username":"%s","password":"%s","scope":".","perm":{"admin":true}}]\n' \
+  "$DEV_USER" "$FB_HASH" > "$FB_USERS_JSON"
 chown "$DEV_USER:$DEV_USER" "$FB_USERS_JSON"
 runuser -u "$DEV_USER" -- env HOME="/home/$DEV_USER" sh -c "\
   filebrowser -d '$FB_DB' config init >/dev/null 2>&1 || true
