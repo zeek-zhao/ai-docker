@@ -63,9 +63,11 @@
 | 3 求解 | ✅ 已完成（M3） | `tools/plan.py`（组合选块+FFD 装箱+超预算降级 sparse；SC-M3-01~05 绿） |
 | 4 融合校验 | ✅ 已完成（M4） | `tools/merge_guard.py`（选举规则唯一入口=tools/overlay.py + lowerdir ≤8 校验；SC-M4-01~04 绿） |
 | 5 告警 | ✅ 已完成（M5） | `tools/alert.py`（四类事件白名单+双通道渲染+按键节流，均取自 policy；SC-M5-01~04 绿） |
+| 6 漂移检测 | ✅ 已完成（M6） | `tools/detect_drift.py`（上游 HEAD vs ls-remote 只比 sha、mirror_sha 写回、drift_detected 事件、预算/cursor；SC-M6-01~06 绿） |
 
 > 开发方式为 BDD（docs/05 五步法），里程碑与任务清单见 docs/06；
-> 当前开发分支 `dev/repo-mirror-sync`，完成后合回 main。
+> M0~M5 已在 `dev/repo-mirror-sync` 完成并合回 main（10db421），
+> M6 起开发在 `repo-mirror-sync` 分支延续。
 
 「待执行」意味着对应文件按 manifest.yaml 标注为 `planned`（测试会校验它**不存在**——
 实现某阶段时：先写 feature 场景（红灯），再实现（绿灯），最后把 manifest 条目从
@@ -92,7 +94,7 @@ cat docs/01-方案总览.md              # 3) 读懂方案与决策参数 D1~D5
 | FR×23 / NFR×7 / 验收准则 | `docs/03-需求规格.md` |
 | 目录/文档/提交/变更流程规范 | `docs/04-仓库规划与流程规范.md` |
 | BDD 五步法、场景目录 | `docs/05-BDD总纲与场景目录.md` |
-| 里程碑 M0~M5、任务清单、当前进度 | `docs/06-开发计划与里程碑.md` |
+| 里程碑 M0~M6、任务清单、当前进度 | `docs/06-开发计划与里程碑.md` |
 | 体积阈值、扫描周期、预算 | `config/scan.yaml` |
 | 块定义、组合、加密、选举规则、告警 | `config/policy.yaml` |
 | 全部文件清单与状态 | `manifest.yaml` |

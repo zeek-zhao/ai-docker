@@ -22,11 +22,11 @@ import bdd_runner  # noqa: E402
 
 # 里程碑顺序导入步骤定义（注册进 bdd_runner.MODULE_STEPS）
 for _mod in ("bdd_steps_scan", "bdd_steps_plan", "bdd_steps_guard",
-             "bdd_steps_alert", "bdd_steps_docker"):
+             "bdd_steps_alert", "bdd_steps_docker", "bdd_steps_drift"):
     try:
         __import__(_mod)
-    except ModuleNotFoundError:
-        pass  # 对应里程碑未开始（docs/06 §4 任务计划）
+    except ImportError:
+        pass  # 对应里程碑未开始（docs/06 §4 任务计划）；from 包 import 名 抛 ImportError
 
 
 def load_tests(loader, tests, pattern):

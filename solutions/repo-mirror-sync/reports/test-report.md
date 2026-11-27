@@ -37,7 +37,7 @@
 
 ## 3. 执行结果
 
-- **末次执行**：59/59 全部通过（回归 35 项 + BDD 场景 24 项，0 失败 0 错误 0 跳过，见 §6~§10）；
+- **末次执行**：65/65 全部通过（回归 35 项 + BDD 场景 30 项，0 失败 0 错误 0 跳过，见 §6~§11）；
   机读详情见 `reports/test-report.json`（含每用例状态与耗时）。
 - **执行环境**：Python 标准库 unittest；Windows 开发机与 Linux 目标服务器
   均可运行（无第三方依赖、路径自定位、统一 LF 行尾）。
@@ -63,8 +63,9 @@ edge 0.2GB 合箱 2.0GB）。两种分组均为满足「每 job ≤ 4.0 GB、合
 
 1. **结论**：阶段 0（规划 + 基础库 + 配置治理 + 文档/清单纪律）与阶段 1~5 全部
    里程碑（M1 扫描器 SC-M1-01~07、M2 构建产物静态结构 SC-M2-01~04、M3 求解器
-   SC-M3-01~05、M4 融合守卫 SC-M4-01~04、M5 告警 SC-M5-01~04）测试目标全部达成；
-   六轮共发现 21 项缺陷（D-1~D-21），已全部修复并回归通过。
+   SC-M3-01~05、M4 融合守卫 SC-M4-01~04、M5 告警 SC-M5-01~04）及阶段 3 遗留项
+   M6 漂移检测（SC-M6-01~06）测试目标全部达成；
+   七轮共发现 22 项缺陷（D-1~D-22），已全部修复并回归通过。
 2. **待执行**（未实现未测，属实际构建/CI 运行，见 docs/06 §4 与 docs/03 §10）：
    M2 产物的实际 Docker 构建、Actions 触发与融合挂载、告警通道真实投递
    须在 Linux 服务器执行；各里程碑完成后按 docs/03 §10 验收准则补充场景并更新本报告。
@@ -160,6 +161,25 @@ edge 0.2GB 合箱 2.0GB）。两种分组均为满足「每 job ≤ 4.0 GB、合
 | D-20 | 「再次放行同键」无匹配步骤定义 | 新增步骤并记录 `last_key`/`first_key` |
 | D-21 | SC-M5-04 given 仅读源码未加载策略 → 断言 `KeyError: 'rules'` | given 同时 `load_alert_policy()` |
 
+## 11. M6 轮补充（漂移检测，1.0.6）
+
+- **新增**：BDD 场景 SC-M6-01~06（`features/detect_drift.feature`，步骤定义
+  `tests/bdd_steps_drift.py`），覆盖 FR-D1/IF-2（docs/01 §12.2）：
+  清单与 mirror 一致零事件且写回观测 sha、mirror 回退一个提交报漂移
+  （FR-D1 验收行为，summary 提示 `repo sync --force-sync`）、mirror 领先上游
+  同样判漂移（只比 sha 不比方向）、请求预算耗尽保存游标且未检仓库原样随行、
+  事件过 policy 告警白名单构建 payload（dedup_key=`drift_detected:<repo>`，
+  通道取自策略）、mirror 探测走 git 协议不消耗请求预算（IF-2，probes=1）。
+- **执行结果**：回归 35 项 + 场景 30 项 = **65/65 通过**（0 失败 0 错误 0 跳过）。
+- **诚实边界**：detect_drift 为纯逻辑模块（上游 HEAD 与 ls-remote 探测均经
+  注入夹具 FakeUpstream/FakeMirrorProber 覆盖）；真实 ls-remote 端到端与
+  「手动回退 mirror 一个 commit」实测属真实 mirror/Linux 环境待执行项。
+- **本轮红灯发现并已修复的缺陷**：
+
+| # | 缺陷 | 修复 |
+|---|---|---|
+| D-22 | `tests/test_bdd_features.py` 步骤模块守卫只捕 `ModuleNotFoundError`，而 `from tools import detect_drift` 在包缺子模块时抛 `ImportError`（cannot import name）→ 整套件加载失败而非逐场景红灯 | 守卫放宽为 `except ImportError`（`ModuleNotFoundError` 为其子类，向后兼容） |
+
 ## 修订历史
 
 | 版本 | 日期 | 修订说明 |
@@ -170,3 +190,4 @@ edge 0.2GB 合箱 2.0GB）。两种分组均为满足「每 job ≤ 4.0 GB、合
 | 1.0.3 | 2026-11-27 | M3 补充：BDD 场景 SC-M3-01~05（FR-P1~P5），51/51 全绿；红灯修复记录 D-11；待执行项收敛至阶段 4~5 与实际构建 |
 | 1.0.4 | 2026-11-27 | M4 补充：BDD 场景 SC-M4-01~04（FR-F1~F3），55/55 全绿；红灯修复记录 D-12~D-16（场景/步骤语法层）；待执行项收敛至阶段 5 与实际构建 |
 | 1.0.5 | 2026-11-28 | M5 补充：BDD 场景 SC-M5-01~04（FR-A1/NFR-6/H10），59/59 全绿；红灯修复记录 D-17~D-21；M0~M5 全部达成，待执行项收敛至 Linux 实际构建/投递 |
+| 1.0.6 | 2026-11-28 | M6 补充：BDD 场景 SC-M6-01~06（FR-D1/IF-2），65/65 全绿；红灯修复记录 D-22；待执行项收敛至真实 mirror/Linux 端到端实测与 FR-D2 合并裁决 |
