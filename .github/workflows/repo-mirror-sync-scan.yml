@@ -52,6 +52,8 @@ jobs:
         run: PYTHONPATH=. python3 tools/scan_inventory.py --repos out/repos.json --out out
 
       - name: 漂移检测（FR-D1：上游 sha 比对，写回 inventory 并产出 drift 事件）
+        env:
+          GH_TOKEN: ${{ secrets.MIRROR_SCAN_TOKEN }}
         run: PYTHONPATH=. python3 tools/detect_drift.py --inventory out/inventory.json --out out
 
       - name: 告警投递（FR-A1：白名单事件经节流投递，H10 节流跨 run 持久化）
