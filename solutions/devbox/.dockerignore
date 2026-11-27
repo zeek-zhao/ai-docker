@@ -1,0 +1,7 @@
+# .dockerignore —— 控制构建上下文体积（BD-001 配套）
+data/
+run/
+docs/
+*.age
+*.tar.age
+secrets/key.txt

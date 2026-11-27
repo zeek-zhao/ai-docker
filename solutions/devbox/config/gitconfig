@@ -1,0 +1,13 @@
+# config/gitconfig —— Git 全局预设（PLAN §3.3，镜像内 /etc/gitconfig）
+# 运行时可被 age 还原的 ~/.gitconfig 覆盖（entrypoint 还原顺序在后）
+[user]
+    name = zeek.zhao
+    email = zeek.zhao@foxmail.com
+[core]
+    editor = vim
+    autocrlf = input
+[init]
+    defaultBranch = main
+[alias]
+    st = status -sb
+    lg = log --oneline --graph --decorate -20
