@@ -2,9 +2,9 @@
 
 | 文档编号 | DSH-PLAN-005 |
 |---|---|
-| 版本 | 1.0.7 |
+| 版本 | 1.0.8 |
 | 日期 | 2026-11-28 |
-| 状态 | 生效（M1~M7 全部场景已实现，绿灯） |
+| 状态 | 生效（M1~M8 全部场景已实现，绿灯；CI 实测通过） |
 
 **修订历史**
 
@@ -18,6 +18,7 @@
 | 1.0.5 | 2026-11-28 | §6 状态修正：SC-M5-01~04 已实现（绿灯）；M1~M5 场景目录全部实现，总纲进入维护态 |
 | 1.0.6 | 2026-11-28 | §6 新增 SC-M6-01~06（漂移检测 FR-D1/IF-2）已实现（绿灯）；状态行更新 M1~M6 |
 | 1.0.7 | 2026-11-28 | §6 新增 SC-M7-01~04（非特权融合校验 FR-F1~F3/ADR-011）已实现（绿灯）；SC-M2 行补实际构建实测状态；状态行更新 M1~M7 |
+| 1.0.8 | 2026-11-28 | §6 新增 SC-M1-08（元数据缺 head_sha 回填回归，FR-S3，F-9）；SC-M1/SC-M2 行补 CI 实测状态（V16~V18）；状态行更新 M1~M8 |
 
 ## 1 范围
 
@@ -64,8 +65,8 @@
 
 | 场景编号 | feature 文件 | 能力 | 需求映射 | 状态 |
 |---|---|---|---|---|
-| SC-M1-01~07 | features/scan_inventory.feature | 体积清单扫描（14 字段、sha 跳过、配额/cursor、oversized、落盘、token 不泄漏） | FR-S1~S5、NFR-1 | 已实现（绿灯） |
-| SC-M2-01~04 | features/docker_artifacts.feature | 构建产物静态结构校验（实际构建已于 Linux 实测 V10~V14，CI 运行待执行） | FR-B1~B4 | 已实现（绿灯） |
+| SC-M1-01~08 | features/scan_inventory.feature | 体积清单扫描（14 字段、sha 跳过、配额/cursor、oversized、落盘、token 不泄漏、F-9 元数据缺 head_sha 回填回归） | FR-S1~S5、NFR-1 | 已实现（绿灯；CI 实测 V16） |
+| SC-M2-01~04 | features/docker_artifacts.feature | 构建产物静态结构校验（实际构建 V10~V14 与 CI 运行 V17/V18 均已实测） | FR-B1~B4 | 已实现（绿灯） |
 | SC-M3-01~05 | features/plan.feature | 组合求解 plan.json（预算、装箱、oversized 降级） | FR-P1~P5 | 已实现（绿灯） |
 | SC-M4-01~04 | features/merge_guard.feature | 融合守卫（选举裁决一致、lowerdir、隔离） | FR-F1~F3 | 已实现（绿灯） |
 | SC-M5-01~04 | features/alert.feature | 告警事件→payload、节流 | FR-A1~A2 | 已实现（绿灯） |

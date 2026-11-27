@@ -76,6 +76,7 @@ entries:
   - { path: "reports/test-report.md",   kind: report, role: 测试设计与结果报告（人读）,         state: delivered }
   - { path: "reports/acceptance-20261128-docker-build.md", kind: report, role: "阶段4 实际构建验证记录（V1~V7 已执行；工具链缺包发现 F-1→Issue #4）", state: delivered }
   - { path: "reports/acceptance-20261128-ubuntu24-fuse-verify.md", kind: report, role: "V2 修复轮实测记录（ubuntu:24.04 基座 V10~V14；harness 非特权端到端 V15；F-1 关闭）", state: delivered }
+  - { path: "reports/acceptance-20261128-ci-restore.md", kind: report, role: "M8 轮 CI 触发与产物还原记录（三流水线 V16~V18 全绿；本地还原 T1~T7；F-4~F-9 登记）", state: delivered }
 
   # ---- 不入库目录占位 ----
   - { path: "out/.gitkeep",   kind: keep, role: 运行产物区占位（目录本体不入库）, state: delivered }
