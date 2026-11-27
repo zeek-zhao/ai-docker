@@ -129,6 +129,7 @@ def scan(repos, fetcher, max_requests, prev_records=None, cursor=None,
                 head = fetcher("head", repo=name, branch=meta["default_branch"])
                 budget.take()
                 tree = fetcher("tree", repo=name, sha=head["sha"])
+            meta["head_sha"] = head["sha"]  # F-9 回填：以引用探测值覆盖元数据缺省（真实适配层 meta 不含 head_sha）
             record = build_record(meta, tree, prev_rec, now)
             if confirmed_budget is not None and budget_mod.decide(
                 record["size_bytes_est"], confirmed_budget

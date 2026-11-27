@@ -42,7 +42,10 @@ class FakeFetcher:
         if kind == "head":
             return {"sha": fixture["head_sha"]}
         if kind == "repo":
-            return dict(fixture)
+            meta = dict(fixture)
+            if fixture.get("meta_head_sha_empty"):
+                meta["head_sha"] = ""  # 模拟 make_github_fetcher 真实形态（F-9）
+            return meta
         if kind == "tree":
             return {"size_kb": fixture["size_kb"], "lfs_bytes": fixture.get("lfs_bytes", 0)}
         raise ValueError(kind)
@@ -91,6 +94,15 @@ def given_prev_empty(ctx):
 @step("given", r'上一轮清单中 "([^"]+)" 的 head_sha 为 (\S+) 分支 (\S+) 尺寸 (\d+)KB')
 def given_prev_repo(ctx, repo, sha, branch, size_kb):
     ctx.setdefault("prev", []).append(_prev_record(repo, sha, branch, size_kb))
+
+
+@step("given", r'仓库夹具 "([^"]+)" 元数据 head_sha 置空 头指针 (\S+) 分支 (\S+)')
+def given_fixture_no_meta_sha(ctx, repo, sha, branch):
+    """F-9 回归夹具：head 探测返回真实 sha，repo 元数据 head_sha 为空串。"""
+    ctx.setdefault("fixtures", []).append({
+        "full_name": repo, "topics": [], "labels": [], "default_branch": branch,
+        "head_sha": sha, "size_kb": 100, "meta_head_sha_empty": True,
+    })
 
 
 @step("given", r'仓库夹具 "([^"]+)" 有 topics \[([^\]]*)\] 标签 \[([^\]]*)\] '

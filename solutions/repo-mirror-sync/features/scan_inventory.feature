@@ -72,3 +72,13 @@
     而且 仓库夹具 "acme/a" 有 topics [k8s] 标签 [] 头指针 s1 分支 main 尺寸 1000KB
     当 执行扫描并落盘 out（fetcher 持有示例密钥）
     那么 out 目录产物文本不包含 secret-token-xyz 也不包含 GH_TOKEN 键名
+
+  @SC-M1-08
+  场景: 元数据缺 head_sha 时以引用探测结果回填（F-9 回归）
+    假如 配置加载自 config 且请求上限为 200
+    而且 上一轮清单为空
+    而且 仓库夹具 "acme/a" 元数据 head_sha 置空 头指针 s9 分支 main
+    当 执行扫描
+    那么 扫描完成 且已产出记录 1 条 且游标清空
+    而且 记录 "acme/a" 的 head_sha 为 s9
+    而且 记录 "acme/a" 的 scan_status 为 ok
