@@ -24,7 +24,8 @@ import bdd_runner  # noqa: E402
 for _mod in ("bdd_steps_scan", "bdd_steps_plan", "bdd_steps_guard",
              "bdd_steps_alert", "bdd_steps_docker", "bdd_steps_drift",
              "bdd_steps_fuse", "bdd_steps_dispatch",
-             "bdd_steps_cache"):
+             "bdd_steps_cache",
+    "bdd_steps_arbitration"):
     try:
         __import__(_mod)
     except ImportError:
