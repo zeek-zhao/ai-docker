@@ -16,7 +16,7 @@
 
 | 方案 ID | 路径 | 主题 | 状态 | 入口 |
 |---|---|---|---|---|
-| `repo-mirror-sync` | `solutions/repo-mirror-sync/` | repo 多仓分层镜像同步 | 规划完成；基础组件与测试已交付，流水线待实现（阶段 2~5） | [solutions/repo-mirror-sync/AGENT.md](solutions/repo-mirror-sync/AGENT.md) |
+| `repo-mirror-sync` | `solutions/repo-mirror-sync/` | repo 多仓分层镜像同步 | M0~M6 已交付（65/65 绿：基础库/扫描/构建产物静态结构/求解/融合守卫/告警/漂移检测）；Linux 实际构建与 CI 运行、合并裁决（§12.3）待执行 | [solutions/repo-mirror-sync/AGENT.md](solutions/repo-mirror-sync/AGENT.md) |
 
 每个方案目录内的固定结构（详细规则见该方案 `docs/04`）：
 
@@ -48,3 +48,4 @@ python3 tests/run_tests.py            # 运行全部测试（纯标准库，Linu
 |---|---|---|
 | 1.0.0 | 2026-11-27 | 初版：方案拆解、架构设计、需求规格、仓库规划、AGENTS.md、配置基线 |
 | 1.1.0 | 2026-11-27 | 重构为多方案仓库：方案产出迁入 `solutions/repo-mirror-sync/`；新增 manifest、tests、reports、AGENT.md |
+| 1.1.1 | 2026-11-28 | 方案状态更新：M6 漂移检测交付（`tools/detect_drift.py`，SC-M6-01~06 全绿，65/65）；待执行项收敛至 Linux 实际构建/CI 运行与 FR-D2 合并裁决 |
