@@ -145,13 +145,15 @@ if [ "$ENABLE_DSH" = "1" ]; then
   if [ -n "$NODE_BIN_DIR" ] && [ -x "${NODE_BIN_DIR}/dsh" ]; then
     mkdir -p "$RUN_DIR/dsh"
     DSH_PUBLIC_URL="${DSH_PUBLIC_URL:-http://127.0.0.1:8080/dsh/}"
+    # D12 实证：dsh fence 在代理场景校验 X-Forwarded-Host 必须 ∈ trusted-host（Caddy 无法删/改 XFH 自动头）
+    DSH_TRUSTED_HOST="$(printf '%s' "$DSH_PUBLIC_URL" | sed -E 's|^https?://([^/]+).*|\1|')"
     (
       runuser -u "$DEV_USER" -- env \
-        HOME="/home/$DEV_USER" PATH="${NODE_BIN_DIR}:/usr/local/bin:/usr/bin:/bin" DSH_PUBLIC_URL="$DSH_PUBLIC_URL" \
-        sh -c 'cd "$HOME" && dsh web --profile desktop --host 127.0.0.1 --port 3081 --no-open --public-url "$DSH_PUBLIC_URL" >/tmp/dsh-web.log 2>&1' \
+        HOME="/home/$DEV_USER" PATH="${NODE_BIN_DIR}:/usr/local/bin:/usr/bin:/bin" DSH_PUBLIC_URL="$DSH_PUBLIC_URL" DSH_TRUSTED_HOST="$DSH_TRUSTED_HOST" \
+        sh -c 'cd "$HOME" && dsh web --profile desktop --host 127.0.0.1 --port 3081 --no-open --public-url "$DSH_PUBLIC_URL" --trusted-host "$DSH_TRUSTED_HOST" >/tmp/dsh-web.log 2>&1' \
         || runuser -u "$DEV_USER" -- env \
-        HOME="/home/$DEV_USER" PATH="${NODE_BIN_DIR}:/usr/local/bin:/usr/bin:/bin" DSH_PUBLIC_URL="$DSH_PUBLIC_URL" \
-        sh -c 'cd "$HOME" && dsh web --host 127.0.0.1 --port 3081 --no-open --public-url "$DSH_PUBLIC_URL" >/tmp/dsh-web.log 2>&1'
+        HOME="/home/$DEV_USER" PATH="${NODE_BIN_DIR}:/usr/local/bin:/usr/bin:/bin" DSH_PUBLIC_URL="$DSH_PUBLIC_URL" DSH_TRUSTED_HOST="$DSH_TRUSTED_HOST" \
+        sh -c 'cd "$HOME" && dsh web --host 127.0.0.1 --port 3081 --no-open --public-url "$DSH_PUBLIC_URL" --trusted-host "$DSH_TRUSTED_HOST" >/tmp/dsh-web.log 2>&1'
     ) &
     # dsh web 每次启动生成一次性 token 登录链接；抓取落盘 + 打进容器日志，供 docker logs 获取
     sleep 6

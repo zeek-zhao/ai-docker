@@ -42,6 +42,7 @@
 		}
 
 		# /dsh → DSH Web（dsh web，镜像内置；handle_path 剥前缀——dsh 按 --public-url 以前缀形态发布）
+		# fence 链：dsh 校验 X-Forwarded-Host（客户端入口 authority）须 ∈ --trusted-host（entrypoint 从 DSH_PUBLIC_URL 解析注入）
 		handle_path /dsh/* {
 			@dsh_disabled not file /run/devbox/dsh/enabled
 			respond @dsh_disabled "DSH 未启用（compose: ENABLE_DSH=1）" 503
