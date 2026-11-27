@@ -30,7 +30,9 @@
 		}
 
 		# /term → ttyd Web 终端（dev 用户会话）
-		handle /term/* {
+		redir /term /term/ 308
+	redir /file-share /file-share/ 308
+	handle /term/* {
 			reverse_proxy 127.0.0.1:7681
 		}
 

@@ -90,7 +90,7 @@ func renderLogin(w http.ResponseWriter, next, msg string) {
 <style>body{font-family:system-ui,sans-serif;background:#0f172a;color:#e2e8f0;display:flex;
 justify-content:center;align-items:center;height:100vh;margin:0}
 .card{background:#1e293b;padding:2rem 2.5rem;border-radius:12px;min-width:300px}
-h1{font-size:1.2rem;margin-top:0}input{width:100%;box-sizing:border-box;padding:.6rem;margin:.4rem 0;
+h1{font-size:1.2rem;margin-top:0}input{width:100%%;box-sizing:border-box;padding:.6rem;margin:.4rem 0;
 border-radius:6px;border:1px solid #334155;background:#0f172a;color:#e2e8f0}
 button{width:100%%;padding:.6rem;margin-top:.8rem;border:0;border-radius:6px;background:#3b82f6;color:#fff}
 .err{color:#f87171;font-size:.85rem}.hint{color:#94a3b8;font-size:.75rem;margin-top:1rem}</style></head>
