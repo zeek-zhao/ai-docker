@@ -85,14 +85,26 @@ runuser -u "$DEV_USER" -- env HOME="/home/$DEV_USER" \
 log "ttyd 已启动 (127.0.0.1:7681, /term)"
 
 # 5.4 filebrowser 文件共享（根目录绑定 devbox 数据目录，PLAN §6.2）
+# 注：filebrowser 新版 CLI 拒绝弱密码（"too short"/"too easy"），测试密码 123 无法
+# 经 users add 写入；改用 filebrowser hash 生成 bcrypt 哈希后经 users import 注入。
 FB_DB_DIR="/home/$DEV_USER/.filebrowser"
 FB_DB="$FB_DB_DIR/filebrowser.db"
 mkdir -p "$FB_DB_DIR"
 chown -R "$DEV_USER:$DEV_USER" "$FB_DB_DIR"
+FB_HASH="$(filebrowser hash "$DEV_PASSWORD" 2>/dev/null | tail -1)"
+FB_USERS_JSON="/tmp/devbox-fb-users.json"
+printf '[{"username":"%s","password":"%s","scope":".","perm":{"admin":true}}]\n' \
+  "$DEV_USER" "$FB_HASH" > "$FB_USERS_JSON"
+chown "$DEV_USER:$DEV_USER" "$FB_USERS_JSON"
 runuser -u "$DEV_USER" -- env HOME="/home/$DEV_USER" sh -c "\
-  filebrowser -d '$FB_DB' config init >/dev/null 2>&1 || true; \
-  filebrowser -d '$FB_DB' users add '$DEV_USER' '$DEV_PASSWORD' --perm.admin >/dev/null 2>&1 || \
-  filebrowser -d '$FB_DB' users update '$DEV_USER' -p '$DEV_PASSWORD' >/dev/null 2>&1 || true"
+  filebrowser -d '$FB_DB' config init >/dev/null 2>&1 || true
+  if ! filebrowser -d '$FB_DB' users import '$FB_USERS_JSON' >/dev/null 2>&1; then
+    filebrowser -d '$FB_DB' users rm '$DEV_USER' >/dev/null 2>&1 || true
+    filebrowser -d '$FB_DB' users import '$FB_USERS_JSON' >/dev/null 2>&1 || \
+      echo '[devbox][ERROR] filebrowser 用户初始化失败，文件共享登录不可用' >&2
+  fi
+  exit 0"
+rm -f "$FB_USERS_JSON"
 runuser -u "$DEV_USER" -- env HOME="/home/$DEV_USER" \
   filebrowser -d "$FB_DB" -a 127.0.0.1 -p 8081 -b /file-share -r "/home/$DEV_USER/data" &
 log "filebrowser 已启动 (127.0.0.1:8081, /file-share, root=/home/$DEV_USER/data)"
