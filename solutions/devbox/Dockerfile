@@ -121,7 +121,7 @@ RUN cd /src/authgate \
 ARG BUN_VERSION=v1.3.4
 RUN curl -fsSL -o /tmp/bun.zip \
       "${GH_PROXY}https://github.com/oven-sh/bun/releases/download/bun-${BUN_VERSION}/bun-linux-x64.zip" \
- && python3 -m zipfile -e /tmp/bun.zip /tmp/ && mv /tmp/bun-linux-x64/bun /usr/local/bin/bun \
+ && cd /tmp && unzip -q bun.zip && mv bun-linux-x64/bun /usr/local/bin/bun \
  && chmod +x /usr/local/bin/bun && rm -rf /tmp/bun.zip /tmp/bun-linux-x64 \
  && bun --version
 
