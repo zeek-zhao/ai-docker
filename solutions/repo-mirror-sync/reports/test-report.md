@@ -1,0 +1,172 @@
+# 测试报告 — repo-mirror-sync 方案测试（DSH-PLAN-001~004）
+
+> 测试入口：`python3 tests/run_tests.py`（方案目录相对路径，跨平台，仅标准库）。
+> 机读结果：`reports/test-report.json`（每次执行覆盖写入，不入 manifest 校验）。
+
+---
+
+## 1. 概述
+
+- **被测对象**：本方案已交付基础库与配置治理能力（阶段 0 产物）：
+  `tools/yaml_lite.py`、`tools/policy.py`、`tools/budget.py`、`tools/overlay.py`、
+  `tools/packing.py`，`config/scan.yaml`、`config/policy.yaml`、`manifest.yaml`
+  与 `docs/` 文档族。
+- **测试目标**：验证配置与确认参数（D1~D5）一致、预算与标签派生正确、
+  选举规则与 docs/01 §13.3 一致、FFD 装箱满足 docs/01 §10 约束、清单与文档治理合格。
+- **范围外**（未实现未测，诚实性 AGENTS §3.5）：阶段 4~5 的 `merge_guard.py`、
+  告警通道；阶段 2 构建产物已于 M2 完成**静态结构**校验（SC-M2-01~04），
+  实际 Docker 构建 / CI 运行仍属 Linux 待执行项（见 §7）；
+  阶段 1 扫描器（§6）与阶段 3 求解器（§8）已实现并全绿。
+
+## 2. 测试设计
+
+35 个用例，按被测能力分六组（编号写入各用例 docstring 首行）：
+
+| 组 | 文件 | 用例 | 设计依据 |
+|---|---|---|---|
+| Y 解析器 | `tests/test_yaml_lite.py` | TC-Y1~Y6 | scan/policy 实际语法：嵌套映射、列表、行内字典、注释、引号内 `#`、含冒号取值（`env:AGE_KEY`、`out/inventory.json`）、非法语法显式报错 |
+| C 配置确认 | `tests/test_config_validation.py` | TC-C1~C8 | docs/01 §5 决策参数表 D1~D5；ADR-005/006/007/010；AGENTS §3.3（tools/ 禁硬编码策略常量，正则扫描 `4000000000`、`storage_gb: 5`、`every_days: 7` 等模式）；非法策略四形态必须被 `Policy.validate()` 拒绝 |
+| B 预算标签 | `tests/test_budget.py` | TC-B1~B4 | docs/01 §8.1 预算公式 `(5−0.4)GB/1.25=3.68GB`；§9.1 size_class 严格不等式边界；D2 确认预算 4.0 GB ≥ 公式值 |
+| O 选举融合 | `tests/test_overlay.py` | TC-O1~O7 | docs/01 §13.3 选举规则（D5）；`manifest/**` pin toolchain、`**/.gitmodules` pin self-dev、`**/build.sh` 前缀隔离（含根级命中）；Windows 反斜杠归一；未知层/空层显式报错；H9 lowerdir ≤ 8 |
+| P 装箱求解 | `tests/test_packing.py` | TC-P1~P6 | docs/01 §10 FFD 约束（降序、bin ≤ 预算、单块不可跨 job）与 §17 示例；FR-P3/P4（超预算单仓标 oversized 不装箱）；确定性已知解；空输入 |
+| M 清单治理 | `tests/test_docs_manifest.py` | TC-M1~M4 | docs/04 §4 文档纪律：manifest 与磁盘一致（delivered 必在、planned 必不在）；编号连续；DSH-PLAN-001~004；头部版本与修订历史末行一致（SemVer） |
+
+设计原则：配置即用例数据（用例读 `config/*.yaml` 而非复写数值，策略变更时用例自动跟随）；
+边界值优先（size_class 七点边界、预算上下界、lowerdir 8/9）；错误路径显式断言
+（非法语法、未知层、悬空引用、缺失阈值必须抛错而非静默缺省）。
+
+## 3. 执行结果
+
+- **末次执行**：59/59 全部通过（回归 35 项 + BDD 场景 24 项，0 失败 0 错误 0 跳过，见 §6~§10）；
+  机读详情见 `reports/test-report.json`（含每用例状态与耗时）。
+- **执行环境**：Python 标准库 unittest；Windows 开发机与 Linux 目标服务器
+  均可运行（无第三方依赖、路径自定位、统一 LF 行尾）。
+- **首轮执行发现并已修复的缺陷**（诚实记录）：
+
+| # | 缺陷 | 修复 |
+|---|---|---|
+| D-1 | `tools/yaml_lite.py` `_KV_RE` 漏写捕获组，解析任意键值对即抛 `IndexError: no such group` | 改为双捕获组（键允许引号形态），`_split_kv` 语义不变 |
+| D-2 | 列表项以行内字典 `{ path: … }` 书写时被误判为 `key: value`，`policy.yaml` `path_rules` 解析损坏 | `_parse_list` 优先识别 `[`/`{` 开头的行内集合 |
+| D-3 | `tools/budget.py` 模块 docstring 出现策略常量字面量，违反 AGENTS §3.3 并被 TC-C6 拦截 | docstring 改述口径，删除字面量 |
+| D-4 | `**/build.sh` 在 fnmatch 语义下不命中根级 `build.sh`，与 gitignore 意图不符 | `match_rule` 对 `**/` 前缀追加「任意层级含根」匹配 |
+| D-5 | TC-P4 用例 id 重复、TC-P5 期望分组写错（期望为用例错误，非实现错误） | 修正用例：id 唯一化；期望改为 FFD 实际解 `[9,1]+[5]` |
+
+## 4. docs/01 §17 示例分组与 FFD 可行解的差异说明
+
+docs/01 §17 端到端示例中「self + edge 同箱」为**示意分组**；FFD 按 size_class
+降序实际产出 **[k8s] + [self, edge]**（k8s 2.6GB 独占一箱，self 1.8GB 与
+edge 0.2GB 合箱 2.0GB）。两种分组均为满足「每 job ≤ 4.0 GB、合计 4.6 GB →
+2 个 job」的可行解；TC-P1 只断言可行解约束（箱数 ≥ 2、各箱 ≤ 预算、全覆盖
+不重复、无 oversized），不断言具体分组，与 FR-P3「FFD 或给差距说明」一致。
+
+## 5. 结论与待执行事项
+
+1. **结论**：阶段 0（规划 + 基础库 + 配置治理 + 文档/清单纪律）与阶段 1~5 全部
+   里程碑（M1 扫描器 SC-M1-01~07、M2 构建产物静态结构 SC-M2-01~04、M3 求解器
+   SC-M3-01~05、M4 融合守卫 SC-M4-01~04、M5 告警 SC-M5-01~04）测试目标全部达成；
+   六轮共发现 21 项缺陷（D-1~D-21），已全部修复并回归通过。
+2. **待执行**（未实现未测，属实际构建/CI 运行，见 docs/06 §4 与 docs/03 §10）：
+   M2 产物的实际 Docker 构建、Actions 触发与融合挂载、告警通道真实投递
+   须在 Linux 服务器执行；各里程碑完成后按 docs/03 §10 验收准则补充场景并更新本报告。
+
+## 6. M1 轮补充（BDD 场景，1.0.1）
+
+- **新增**：BDD 场景 SC-M1-01~07（`features/scan_inventory.feature`，中文 Gherkin，
+  步骤定义 `tests/bdd_steps_scan.py`，经 `tests/test_bdd_features.py` 桥接进统一套件），
+  覆盖扫描器 FR-S1~S5：14 字段记录、sha 未变跳过、配额耗尽 cursor、续跑补齐、
+  oversized 标记、out/ 双格式落盘、token/键名不泄漏。
+- **执行结果**：回归 35 项 + 场景 7 项 = **42/42 通过**（0 失败 0 错误 0 跳过）。
+- **本轮红灯发现并已修复的缺陷**（BDD「先场景后实现」如实记录）：
+
+| # | 缺陷 | 修复 |
+|---|---|---|
+| D-6 | `tests/bdd_runner.py` 不认「功能:」后的自由叙述行，整个 BDD 套件加载失败 | `parse_feature` 允许叙述段（无未闭合场景时的自由文本行） |
+| D-7 | TC-M3 动态编号误拼 `DSH-PLAN-01`（文档编号实为三位 `DSH-PLAN-001`） | 改 `%03d` 补零 |
+| D-8 | `docs/06` 头部补修订表后文末旧修订节未删，TC-M4 判「末行版本 1.0.0」失败 | 删除文末重复节，改指回文首 |
+| D-9 | `tools/scan_inventory.py` 续跑时上轮记录不随行——`write_inventory` 覆盖写会丢失已扫仓库（SC-M1-04 红灯暴露） | `scan()` 返回合并后的完整清单（不在本轮 order 的上轮记录原样随行）；场景改为模拟「首轮中断后的真实状态」 |
+
+## 7. M2 轮补充（构建产物静态结构，1.0.2）
+
+- **新增**：BDD 场景 SC-M2-01~04（`features/docker_artifacts.feature`，步骤定义
+  `tests/bdd_steps_docker.py`），覆盖 FR-B1~B4 静态结构约束：
+  toolchain digest 固定 + 工具链三件套、块镜像参数化且索引不进继承链、
+  融合视图 lowerdir/manifest 软链约定、三工作流结构（cron 与 config 语义一致、
+  凭据走环境变量、绑定表、age 全层加密 + sha256 tag）。
+- **执行结果**：回归 35 项 + 场景 11 项 = **46/46 通过**（0 失败 0 错误 0 跳过）。
+- **诚实边界**：本组用例为**静态结构校验**——实际 Docker 构建、Actions 触发、
+  overlay 挂载验收属阶段 4，须在 Linux 服务器执行（AGENTS §3.5）。
+- **本轮红灯发现并已修复的缺陷**：
+
+| # | 缺陷 | 修复 |
+|---|---|---|
+| D-10 | `tests/bdd_steps_docker.py` `then_no_latest` 无条件访问 `ctx["workflows"]`，纯 Dockerfile 场景抛 `KeyError`（步骤定义缺陷，非实现缺陷） | 改 `ctx.get("workflows", {})` |
+
+## 8. M3 轮补充（组合求解器，1.0.3）
+
+- **新增**：BDD 场景 SC-M3-01~05（`features/plan.feature`，步骤定义
+  `tests/bdd_steps_plan.py`），覆盖 FR-P1~P5：标签/topics 正交选块、
+  FFD 装箱各 job ≤ 确认预算、单块不跨 job、超预算单仓降级 sparse
+  （`--filter=blob:none --depth=1`）、plan.json 归档（generated/algo_version/
+  inventory_snapshot/jobs）与同输入可复现、未知组合显式报错（PolicyError）。
+- **执行结果**：回归 35 项 + 场景 16 项 = **51/51 通过**（0 失败 0 错误 0 跳过）。
+- **诚实边界**：求解器为纯计算模块（无网络层，FR-P2 先计划后拉取）；
+  plan.json 实际落盘 `out/`（不入库）；对接 inventory.json 全链路属阶段 4~5 集成。
+- **本轮红灯发现并已修复的缺陷**：
+
+| # | 缺陷 | 修复 |
+|---|---|---|
+| D-11 | `tools/plan.py` 与步骤定义对 `load_policy()` 返回值做二次 `Policy()` 包装，抛 `AttributeError: 'Policy' object has no attribute 'get'` | `load_policy` 已返回 Policy 实例（含结构校验），删除双重包装 |
+
+## 9. M4 轮补充（融合守卫，1.0.4）
+
+- **新增**：BDD 场景 SC-M4-01~04（`features/merge_guard.feature`，步骤定义
+  `tests/bdd_steps_guard.py`），覆盖 FR-F1~F3：同名路径裁决与 overlay 一致
+  （keep/pin 且 path_rules 压倒 precedence）、`**/build.sh` isolate 前缀隔离
+  不产生胜出层（H6）、层数>8 建议两级融合且上限取自 policy（FR-F1/H9）、
+  守卫源码静态断言委托 `tools.overlay.OverlayResolver` 且无第二套裁决表
+  （FR-F3/AGENTS §3.6）。
+- **执行结果**：回归 35 项 + 场景 20 项 = **55/55 通过**（0 失败 0 错误 0 跳过）。
+- **诚实边界**：守卫为纯计算模块（不挂载、不联网）；两级融合仅产出建议，
+  实际两级挂载属 Linux 阶段 4 验证。
+- **本轮红灯发现并已修复的缺陷**（均为场景/步骤语法层，实现零改动）：
+
+| # | 缺陷 | 修复 |
+|---|---|---|
+| D-12 | feature 首行使用功能级 tag「@M4 融合守卫」，运行器仅支持场景级 tag → BDD 套件加载失败 | 删除功能级 tag 行 |
+| D-13 | feature 使用「背景:」块，运行器语法（docs/05）不含该关键字 → 「步骤出现在场景之外」 | 前置步骤内联到每个场景 |
+| D-14 | 场景缺编号 tag 行（`@SC-M4-…`）→ 「场景缺少编号 tag」 | 每个场景补 tag 行 |
+| D-15 | 「而且」后无空格，不满足运行器 `而且\s+` 关键字切分 → 「无法识别的行」 | 补空格（6 处） |
+| D-16 | 步骤正则未容忍「为/路径」后的空格（6 个模式全匹配失败）→ 「无匹配步骤定义」 | 统一加 `\s*` |
+
+## 10. M5 轮补充（告警，1.0.5）
+
+- **新增**：BDD 场景 SC-M5-01~04（`features/alert.feature`，步骤定义
+  `tests/bdd_steps_alert.py`），覆盖 FR-A1/NFR-6/H10：四类事件白名单生成
+  payload 且未知类型拒绝、估算/实测双数成对校验（NFR-6）、节流窗口取自
+  policy（1h=3600s 边界：3599s 抑制/3600s 放行）且按键独立、双通道渲染
+  （github-issue 标题/标签、feishu 文本内容）且渲染结果不含凭据字段、
+  源码静态断言（事件白名单字面量/节流时长常量零硬编码、不导入网络库、
+  引用策略加载）。
+- **执行结果**：回归 35 项 + 场景 24 项 = **59/59 通过**（0 失败 0 错误 0 跳过）。
+- **诚实边界**：alert.py 为纯逻辑模块（不联网、默认不发送，dispatch 无 sender
+  即 skipped）；真实 GitHub Issue/飞书 webhook 投递属 Linux 阶段 5 验证。
+- **本轮红灯发现并已修复的缺陷**：
+
+| # | 缺陷 | 修复 |
+|---|---|---|
+| D-17 | feature 场景缺编号 tag 行（`@SC-M5-…`）→ 「场景缺少编号 tag」 | 每个场景补 tag 行 |
+| D-18 | 「那么」后无空格（那么抛出/那么放行，共 6 行）→ 「无法识别的行」 | 补空格 |
+| D-19 | `load_alert_policy(None)` 把缺省 None 直接传给 `load_policy` → 「策略文件不存在：None\\config\policy.yaml」 | 缺省时按模块位置解析方案目录（`tools/` 上一级，仓库相对路径） |
+| D-20 | 「再次放行同键」无匹配步骤定义 | 新增步骤并记录 `last_key`/`first_key` |
+| D-21 | SC-M5-04 given 仅读源码未加载策略 → 断言 `KeyError: 'rules'` | given 同时 `load_alert_policy()` |
+
+## 修订历史
+
+| 版本 | 日期 | 修订说明 |
+|---|---|---|
+| 1.0.0 | 2026-11-27 | 首次发布：35 用例设计与执行结果（35/35 通过），含首轮 5 项缺陷修复记录与 §17 分组差异说明 |
+| 1.0.1 | 2026-11-27 | M1 补充：BDD 场景 SC-M1-01~07（FR-S1~S5），42/42 全绿；红灯修复记录 D-6~D-9 |
+| 1.0.2 | 2026-11-27 | M2 补充：BDD 场景 SC-M2-01~04（FR-B1~B4 静态结构），46/46 全绿；红灯修复记录 D-10；待执行项收敛至阶段 3~5 与实际构建 |
+| 1.0.3 | 2026-11-27 | M3 补充：BDD 场景 SC-M3-01~05（FR-P1~P5），51/51 全绿；红灯修复记录 D-11；待执行项收敛至阶段 4~5 与实际构建 |
+| 1.0.4 | 2026-11-27 | M4 补充：BDD 场景 SC-M4-01~04（FR-F1~F3），55/55 全绿；红灯修复记录 D-12~D-16（场景/步骤语法层）；待执行项收敛至阶段 5 与实际构建 |
+| 1.0.5 | 2026-11-28 | M5 补充：BDD 场景 SC-M5-01~04（FR-A1/NFR-6/H10），59/59 全绿；红灯修复记录 D-17~D-21；M0~M5 全部达成，待执行项收敛至 Linux 实际构建/投递 |

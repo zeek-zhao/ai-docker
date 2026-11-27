@@ -1,0 +1,38 @@
+# .github/workflows/scan.yml — 体积清单扫描流水线（FR-S1~S5，阶段 2）
+# 目标环境：Linux（仓库相对路径；仓库根 AGENT.md）。
+#
+# 调度一致性说明（SC-M2-04）：GitHub Actions 的 cron 必须写字面量，
+# 扫描周期/错峰分钟数的唯一策略出处仍是 config/scan.yaml
+# （AGENTS §3.3）；本文件以注释 + docs/05 SC-M2-04 静态一致性用例
+# 双向约束，config 变更时必须同步本表达式。
+name: scan-inventory
+
+on:
+  schedule:
+    # 对齐 config/scan.yaml：scan.every_days=7、scan.stagger_minute=17
+    # 分 时 日 月 周 —— DOM=*/7 对应每 7 天一档，minute=17 错峰。
+    - cron: "17 3 */7 * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    # 方案目录即工作目录（AGENTS §2.2 仓库地图）。
+    working-directory: solutions/repo-mirror-sync
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 体积清单扫描（受控配额 + cursor 续跑）
+        env:
+          # token 一律走环境变量（AGENTS §3.4）；GH_TOKEN 为扫描器
+          # make_github_fetcher(token_env="GH_TOKEN") 约定的变量名。
+          GH_TOKEN: ${{ secrets.MIRROR_SCAN_TOKEN }}
+        run: python3 tools/scan_inventory.py --repos out/repos.json --out out
+        # out/repos.json 由 manifest → 仓库清单导出生成（阶段 5 完善）；
+        # 断点续跑凭 out/cursor.json，每日配额见 config/scan.yaml。

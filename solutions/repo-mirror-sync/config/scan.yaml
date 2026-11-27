@@ -1,0 +1,27 @@
+# scan.yaml — 扫描频率、请求上限、预算（唯一出处，禁止在脚本中硬编码）
+# 决策依据：docs/02-架构设计.md ADR-002 / ADR-003；参数由需求方 2026-11-27 确认（docs/01 §5 D1/D2）
+# 修改本文件 = 策略变更：须同步更新对应 ADR 与 docs/04 §3.1 基线（AGENTS.md §3.3）
+
+version: 1
+
+scan:
+  every_days: 7                  # D1 确认：低频扫描周期
+  max_requests_per_run: 200      # 单次运行请求上限，耗尽写 cursor 续跑
+  stagger_minute: 17             # 错开整点，避开日常 CI 配额高峰
+  state_file: out/inventory.json # 唯一真相表（不入库，见 .gitignore）
+  csv_export: out/inventory.csv  # 人读版，随扫描产出
+
+limits:
+  storage_gb: 5                  # 平台单次存储上限（配置项，非硬编码）
+  overhead_gb: 0.4               # 基础层 + manifest + 构建缓存 + 日志（实测 0.3~0.5）
+  safety_factor: 1.25            # k：覆盖 git 对象膨胀 / LFS / 加密体积
+  cache_gb: 10                   # Actions 缓存上限，用于 LRU 淘汰策略（FR-A2）
+
+budget:
+  # D2 确认：单 job 原始体积上限 ≈ 4.0 GB（=(5−0.4)/1.25 再取整冗余）
+  budget_bytes: 4000000000
+
+size_class:                      # 派生标签阈值（docs/01 §9.1，十进制字节口径，值不变仅落配置）
+  small_max_bytes: 200000000     # small(<200MB)
+  large_min_bytes: 1500000000    # large(>1.5GB)
+  oversized_min_bytes: 3500000000 # oversized(>3.5GB)，必走 FR-P4 稀疏检出
