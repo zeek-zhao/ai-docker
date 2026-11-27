@@ -10,11 +10,11 @@
         icon: mdi-folder-multiple-outline
         href: /file-share/
         description: devbox 数据目录浏览/上传/删除
-    - DSH 远程桌面:
+    - DSH:
         icon: mdi-monitor
         href: /dsh/
-        description: 需 ENABLE_DSH=1 并注入二进制后可用
+        description: DeepSeek Harness Web（ENABLE_DSH=1 启用）
     - Magpie 面板:
         icon: mdi-robot
         href: /magpie/
-        description: 需 ENABLE_MAGPIE=1 并注入二进制后可用
+        description: AI 网关面板（ENABLE_MAGPIE=1 启用）

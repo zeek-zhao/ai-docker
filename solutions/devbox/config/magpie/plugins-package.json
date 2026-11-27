@@ -1,0 +1,13 @@
+{
+  "name": "magpie-plugins",
+  "private": true,
+  "dependencies": {
+    "@magpie-community/opencode-workbuddy-auth": "0.2.43",
+    "@magpie-community/opencode-zcode-auth": "0.1.72",
+    "@magpie-community/opencode-zed-auth": "0.1.19",
+    "@magpie-community/opencode-zen-free-auth": "0.1.28",
+    "@magpie-community/page-usage": "0.1.1",
+    "@magpie-community/tools-calc": "0.1.0",
+    "magpie-our-free-model": "github:mu-zi-lee/magpie-our-free-model"
+  }
+}

@@ -23,8 +23,11 @@ services:
       DEV_PASSWORD: "${DEV_PASSWORD:-123}"        # 本地测试弱密码，公网必改（PLAN §7.1）
       ROOT_PASSWORD: "${ROOT_PASSWORD:-root}"     # 本地测试弱密码，公网必改
       ENABLE_TAILSCALE: "${ENABLE_TAILSCALE:-0}"  # 1=启用用户态 tailscale
-      ENABLE_DSH: "${ENABLE_DSH:-0}"              # 1=启用 /dsh 反代（DSH 网关 3081）
-      ENABLE_MAGPIE: "${ENABLE_MAGPIE:-0}"        # 1=启用 /magpie 反代（面板 3430）
+      ENABLE_DSH: "${ENABLE_DSH:-0}"              # 1=启用 /dsh 反代（dsh web 3081，镜像内置）
+      ENABLE_MAGPIE: "${ENABLE_MAGPIE:-0}"        # 1=启用 /magpie 反代（面板 3430 + 网关 3425，镜像内置）
+      DSH_PUBLIC_URL: "${DSH_PUBLIC_URL:-}"       # 可选：DSH 对外入口（默认 http://127.0.0.1:8080/dsh/，公网部署换成实际地址）
+      MAGPIE_WEB_KEY: "${MAGPIE_WEB_KEY:-devbox-magpie-key}"   # Magpie 面板访问 key（16+ 字符）
+      MAGPIE_WEB_URL: "${MAGPIE_WEB_URL:-}"       # 可选：Magpie 对外入口（默认 http://127.0.0.1:8080/magpie/）
       TZ: Asia/Shanghai
       LANG: zh_CN.UTF-8
     volumes:

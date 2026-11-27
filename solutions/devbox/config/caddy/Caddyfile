@@ -24,9 +24,11 @@
 		}
 
 		# 统一登录态会话鉴权：未登录一律先跳登录页（PLAN §6.1）
+		# 注意：禁止 copy_headers Cookie——auth-gate /verify 响应无 Cookie 头，该指令会把发往上游的
+		# Cookie 头清空，导致 dsh/magpie 收不到自身会话 Cookie 而 401（D15 实证）；客户端 Cookie
+		# 由 reverse_proxy 默认透传，无需显式配置。
 		forward_auth 127.0.0.1:9090 {
 			uri /verify
-			copy_headers Cookie
 		}
 
 		# /term → ttyd Web 终端（dev 用户会话）
@@ -41,18 +43,35 @@
 			reverse_proxy 127.0.0.1:8081
 		}
 
-		# /dsh → DSH 远程访问网关（本体 3080 不对外；enabled 标记由 entrypoint 写入）
-		handle /dsh/* {
+		# /dsh → DSH Web（dsh web，镜像内置；handle_path 剥前缀——dsh 按 --public-url 以前缀形态发布）
+		# fence 链：dsh 校验 X-Forwarded-Host（客户端入口 authority）须 ∈ --trusted-host（entrypoint 从 DSH_PUBLIC_URL 解析注入）
+		handle_path /dsh/* {
 			@dsh_disabled not file /run/devbox/dsh/enabled
-			respond @dsh_disabled "DSH 未启用或未注入（compose: ENABLE_DSH=1）" 503
-			reverse_proxy 127.0.0.1:3081
+			respond @dsh_disabled "DSH 未启用（compose: ENABLE_DSH=1）" 503
+			reverse_proxy 127.0.0.1:3081 {
+				header_up Host 127.0.0.1:3081
+			}
 		}
 
-		# /magpie → Magpie 面板（网关 API 3425 不对外；enabled 标记由 entrypoint 写入）
-		handle /magpie/* {
+		# /magpie → Magpie 面板（镜像内置；网关 API 3425 不对外；handle_path 剥前缀——magpie 按 MAGPIE_WEB_URL 前缀形态发布）
+		handle_path /magpie/* {
 			@magpie_disabled not file /run/devbox/magpie/enabled
-			respond @magpie_disabled "Magpie 未启用或未注入（compose: ENABLE_MAGPIE=1）" 503
-			reverse_proxy 127.0.0.1:3430
+			respond @magpie_disabled "Magpie 未启用（compose: ENABLE_MAGPIE=1）" 503
+			reverse_proxy 127.0.0.1:3430 {
+				header_up Host 127.0.0.1:3430
+			}
+		}
+
+		# magpie 面板 XHR 以绝对路径 /api/* 发出（前端限制，不带 /magpie 前缀），
+		# 按 Referer 归属 magpie，与 homepage 自身 /api/*（Referer 为首页路径）区分，避免误抢
+		@magpie_api {
+			path /api/*
+			header_regexp Referer "/magpie(/|$)"
+		}
+		handle @magpie_api {
+			reverse_proxy 127.0.0.1:3430 {
+				header_up Host 127.0.0.1:3430
+			}
 		}
 
 		# / → HomePage 导航首页（无匹配器兜底，必须置于 route 末位，否则吞掉上述全部路由）
