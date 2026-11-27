@@ -256,6 +256,8 @@ edge 0.2GB 合箱 2.0GB）。两种分组均为满足「每 job ≤ 4.0 GB、合
 | F-12 | bdd_steps_cache ROOT 未定义 + _synth size=100 使 SC-M9-06 预算场景不成立 | 步骤落盘笔误（1000 字节意图写为 100） | 改 _ROOT + size=1000（4000>1000 预算成立） |
 | F-13 | cache_gc 文件级删除残留空目录壳（b01/b02 目录仍在） | clean 契约未含目录壳回收 | 整块删除后 rmdir 空壳（复验 b03~b10 剩余） |
 | F-14 | docs/04 §3.1 目录树 toolchain 注释仍写 overlayfs（M7 ADR-011 治理漏项） | M7 轮文档同步未覆盖目录树注释行 | 本轮修正并补记 |
+| F-15 | 验收记录凭据行误含真实 token（运行时占位符被宿主替换写入文档；M9 轮 test-report 漏登记，本轮补记） | heredoc 直写占位符文本触发替换机制 | Push Protection 拦截（未进远端）；改描述性文案+全库扫描确认仅 1 处；教训：入库文档禁写占位符形态文本 |
+| F-16 | CI 漂移检测步骤 exit 1（run 46054269814） | 步骤漏注 GH_TOKEN，make_github_fetcher 拒绝无凭据调 API | 补 secrets 注入（b38aaf5）；本地真实形态冒烟+CI 复跑 46055114527 全绿，mirror_sha 首检基线写回 |
 
 ### 14.3 实测佐证
 
@@ -263,7 +265,9 @@ edge 0.2GB 合箱 2.0GB）。两种分组均为满足「每 job ≤ 4.0 GB、合
 - 缓存治理实测（FR-A2）：cache_gc CLI 合成 10 块×2 版本 → 块级 LRU 删 b01/b02（4 行日志）+ 空目录壳回收（剩余 b03~b10）；目录缺失 → 零清理审计通过；
 - GH_TOKENS 轮转入口真实冒烟（FR-A3）：单枚 token 真实扫描 3 请求完成，head_sha=d102e6f4d72decc92c579c6eaf737f15b4a9c174（main HEAD）且未超限不产 alert-events.json；
 - feishu-webhook：无 URL 通道 skipped 降级符合设计，真实发送待 FEISHU_WEBHOOK_URL 提供（**待执行**）；
-- 详见 `reports/acceptance-20261128-alert-dispatch.md`（E2E-1~8）。
+- CI 端到端告警（M10 收口）：scan run 46054269814 真实失败 → 失败告警步骤 `scan_error:scanner → sent` 真发（FR-A1 无需人为制造）；F-16 修复后 run 46055114527 全绿，制品 alert-dispatch.json/inventory.json（head_sha==mirror_sha 首检基线写回）；
+- GH_TOKENS 轮转 stub 离线实证：bad→403 依序轮转 good→200、耗尽 HTTPError 403 冒泡、GH_TOKENS 缺省回退 GH_TOKEN 单枚，三场景全过；
+- 详见 `reports/acceptance-20261128-alert-dispatch.md`（E2E-1~11）。
 
 ## 修订历史
 
@@ -279,3 +283,4 @@ edge 0.2GB 合箱 2.0GB）。两种分组均为满足「每 job ≤ 4.0 GB、合
 | 1.0.7 | 2026-11-28 | M7 补充：BDD 场景 SC-M7-01~04（FR-F1~F3/ADR-011），69/69 全绿；缺陷 D-23~D-24 与治理漏项 D-25；实测佐证 ubuntu:24.04 基座与 harness 非特权端到端（验收记录 20261128-ubuntu24-fuse-verify） |
 | 1.0.8 | 2026-11-28 | M8 补充：SC-M1-08（F-9 回归）70/70 全绿；CI 实测 V16~V18 与还原 T1~T7（验收记录 20261128-ci-restore）；缺陷/约束 F-4~F-9 登记（§13） |
 | 1.0.9 | 2026-11-28 | M9 补充：SC-M9-01~08（告警投递网络层+缓存 LRU）与 SC-M1-09（GH_TOKENS 轮转）79/79 全绿；实测 E2E-1~8（github-issue 真发 Issue #8+节流抑制、cache LRU、GH_TOKENS 冒烟，验收记录 20261128-alert-dispatch）；缺陷/治理漏项 F-10~F-14 登记（§14） |
+| 1.0.10 | 2026-11-28 | M10 收口补充：CI 端到端告警达成与 GH_TOKENS 轮转 stub 实证（§14.3）；F-15 补记+F-16 登记（§14.2） |
