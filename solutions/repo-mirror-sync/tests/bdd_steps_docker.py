@@ -35,9 +35,17 @@ def given_dockerfile(ctx, rel_path):
     ctx["current_file"] = rel_path
 
 
+_REPO_ROOT = _ROOT.parents[1]
+
+
 @step("given", r'工作流文件 "([^"]+)" 已存在')
 def given_workflow(ctx, name):
-    ctx.setdefault("workflows", {})[name] = _read(".github/workflows/%s" % name)
+    """ADR-012：工作流迁仓库根级，优先读根级 repo-mirror-sync-<name>，回退方案内旧路径。"""
+    root_file = _REPO_ROOT / ".github" / "workflows" / ("repo-mirror-sync-%s" % name)
+    legacy = _ROOT / ".github" / "workflows" / name
+    target = root_file if root_file.is_file() else legacy
+    assert target.is_file(), "工作流文件不存在：%s（根级与方案内均未找到）" % target
+    ctx.setdefault("workflows", {})[name] = target.read_text(encoding="utf-8")
     ctx["current_workflow"] = name
 
 

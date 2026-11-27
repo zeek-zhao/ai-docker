@@ -10,6 +10,8 @@ scan:
   stagger_minute: 17             # 错开整点，避开日常 CI 配额高峰
   state_file: out/inventory.json # 唯一真相表（不入库，见 .gitignore）
   csv_export: out/inventory.csv  # 人读版，随扫描产出
+  repos:                         # 扫描对象清单唯一出处（ADR-013）；CI 步骤导出为 out/repos.json
+    - full_name: zeek-zhao/ai-docker   # 首版最小集：本仓库（真实清单由需求方维护，阶段 5 完善）
 
 limits:
   storage_gb: 5                  # 平台单次存储上限（配置项，非硬编码）

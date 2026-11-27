@@ -1,0 +1,52 @@
+# repo-mirror-sync-scan.yml — 阶段1 体积清单扫描流水线（ADR-012：迁仓库根级，方案前缀命名）
+# 触发：每 7 天定时（cron 对齐 config/scan.yaml every_days/stagger_minute，SC-M2-04）+ 手动
+# 配额：请求上限与 cursor 续跑由 config/scan.yaml 唯一约束（AGENTS §3.4）；token 走环境变量，禁入库禁日志
+name: scan-inventory
+
+on:
+  schedule:
+    - cron: "17 3 */7 * *"       # minute=stagger_minute；日域 */every_days（五段式）
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: solutions/repo-mirror-sync
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 生成仓库清单 out/repos.json（唯一出处 config/scan.yaml scan.repos，ADR-013）
+        run: |
+          mkdir -p out
+          python3 - <<'PY'
+          import json, sys
+          sys.path.insert(0, '.')
+          from tools import policy as policy_mod
+          cfg, errors = policy_mod.load_scan('.')
+          assert not errors, 'config/scan.yaml 校验失败：%s' % errors
+          repos = cfg['scan'].get('repos') or []
+          assert repos, 'config/scan.yaml scan.repos 为空：无扫描对象'
+          with open('out/repos.json', 'w', encoding='utf-8') as fh:
+              json.dump(repos, fh, ensure_ascii=False)
+          print('仓库清单导出 %d 项（config/scan.yaml 唯一出处，ADR-013）' % len(repos))
+          PY
+
+      - name: 体积清单扫描（受控配额 + cursor 续跑；token 仅经环境变量注入）
+        env:
+          GH_TOKEN: ${{ secrets.MIRROR_SCAN_TOKEN }}
+        run: python3 tools/scan_inventory.py --repos out/repos.json --out out
+
+      - name: 上传扫描清单制品
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-inventory-${{ github.run_number }}
+          path: |
+            solutions/repo-mirror-sync/out/inventory.json
+            solutions/repo-mirror-sync/out/inventory.csv
+          retention-days: 7

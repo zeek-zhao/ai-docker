@@ -91,6 +91,6 @@ entries:
   - { path: "docker/toolchain.Dockerfile", kind: image, role: "阶段2 L0 工具链镜像（ubuntu:24.04 digest 固定，SC-M2-01；ADR-011）", state: delivered }
   - { path: "docker/block.Dockerfile",     kind: image, role: "阶段2 块镜像定义（索引不进继承链，SC-M2-02）", state: delivered }
   - { path: "docker/fused.Dockerfile",     kind: image, role: "阶段4 融合视图定义（静态结构先行，SC-M2-03）", state: delivered }
-  - { path: ".github/workflows/scan.yml",       kind: ci, role: "阶段1 定时扫描流水线（cron 对齐 config，SC-M2-04）", state: delivered }
-  - { path: ".github/workflows/build-block.yml", kind: ci, role: "阶段2 块构建流水线（全层加密+sha256 tag）", state: delivered }
-  - { path: ".github/workflows/verify-fuse.yml", kind: ci, role: "阶段4 融合验收流水线（CI 验收=非特权用户态等价校验，ADR-011）", state: delivered }
+  - { path: "../../.github/workflows/repo-mirror-sync-scan.yml",       kind: ci, role: "阶段1 定时扫描流水线（cron 对齐 config；ADR-012 迁仓库根级；SC-M2-04）", state: delivered }
+  - { path: "../../.github/workflows/repo-mirror-sync-build-block.yml", kind: ci, role: "阶段2 块构建流水线（全层加密+sha256；镜像内 fail-fast 绑定表检查；ADR-012）", state: delivered }
+  - { path: "../../.github/workflows/repo-mirror-sync-verify-fuse.yml", kind: ci, role: "阶段4 融合验收流水线（非特权用户态等价校验+加密往返哈希门禁，ADR-011/012）", state: delivered }

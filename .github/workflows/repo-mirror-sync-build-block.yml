@@ -1,0 +1,89 @@
+# repo-mirror-sync-build-block.yml — 阶段2 块构建流水线（ADR-012：迁仓库根级）
+# 入参 block_id：CI 链路验证默认 verify-block（不入 config/policy.yaml blocks[]，仅供流水线验证）；
+# 真实块 id 以 config/policy.yaml blocks[].id 为准（AGENTS §3.3）。
+# 验证块绑定表 bindings.json 在流水线内运行时生成（docs/01 §11.3 schema）；真实块内容由扫描与 plan 产出（阶段 5）。
+name: build-block
+
+on:
+  workflow_call:
+    inputs:
+      block_id:
+        description: 块 ID（真实块取 config/policy.yaml blocks[].id）
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      block_id:
+        description: 块 ID（CI 链路验证默认 verify-block）
+        required: false
+        default: verify-block
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+defaults:
+  run:
+    working-directory: solutions/repo-mirror-sync
+
+jobs:
+  build-block:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 age（FR-B4 加密工具；runner 无预装）
+        run: sudo apt-get update && sudo apt-get install -y age
+
+      - name: 构建 L0 工具链镜像（ubuntu:24.04，digest 固定；维护时点实测值见验收记录）
+        run: |
+          docker build -f docker/toolchain.Dockerfile \
+            --build-arg UBUNTU_DIGEST=sha256:562111b88caa79c71391c0c4d3c2114a7d5c35915c20561fd893cb1e07929e6b \
+            -t repo-mirror-sync/toolchain:L0 .
+
+      - name: 准备验证块构建上下文（运行时生成，不入库；AGENTS §3.2）
+        run: |
+          mkdir -p "blocks/${{ inputs.block_id }}/repo"
+          cat > "blocks/${{ inputs.block_id }}/bindings.json" <<JSON
+          {
+            "block": "${{ inputs.block_id }}",
+            "manifest_rev": "ci-verify-${{ github.run_number }}",
+            "entries": [],
+            "repos": []
+          }
+          JSON
+          echo "verify-block sample (CI 链路验证)" > "blocks/${{ inputs.block_id }}/repo/README.md"
+
+      - name: 块镜像构建（fail-fast：缺绑定表/缺目录即失败，FR-B3）
+        run: |
+          docker build -f docker/block.Dockerfile \
+            --build-arg BUILD_BLOCK=${{ inputs.block_id }} \
+            --build-arg BLOCK_VERSION=${{ github.run_number }} \
+            -t "block-${{ inputs.block_id }}:${{ github.run_number }}" .
+
+      - name: 绑定表检查（镜像内 fail-fast 语义等价，FR-B3）
+        run: |
+          docker run --rm --entrypoint test \
+            "block-${{ inputs.block_id }}:${{ github.run_number }}" \
+            -f /opt/block/bindings.json
+          echo "绑定表检查通过（镜像内 /opt/block/bindings.json）"
+
+      - name: 导出镜像层并全层加密（FR-B4，age）与 sha256
+        env:
+          AGE_RECIPIENTS: ${{ secrets.AGE_RECIPIENTS }}
+        run: |
+          mkdir -p out
+          docker save "block-${{ inputs.block_id }}:${{ github.run_number }}" -o out/block.tar
+          sha256sum out/block.tar | tee out/block.tar.sha256
+          age -encrypt -r "$AGE_RECIPIENTS" -o out/block.tar.age out/block.tar
+          rm -f out/block.tar
+
+      - name: 上传加密制品
+        uses: actions/upload-artifact@v4
+        with:
+          name: block-${{ inputs.block_id }}-${{ github.run_number }}
+          path: |
+            solutions/repo-mirror-sync/out/block.tar.age
+            solutions/repo-mirror-sync/out/block.tar.sha256
+          retention-days: 7
