@@ -16,7 +16,7 @@
 
 | 方案 ID | 路径 | 主题 | 状态 | 入口 |
 |---|---|---|---|---|
-| `repo-mirror-sync` | `solutions/repo-mirror-sync/` | repo 多仓分层镜像同步 | M0~M7 已交付（69/69 绿：基础库/扫描/构建产物静态结构/求解/融合守卫/告警/漂移检测/非特权融合校验）；toolchain 基座 ubuntu:24.04（ADR-011，实际构建已 Linux 实测 V10~V14）；CI 运行与合并裁决（§12.3）待执行 | [solutions/repo-mirror-sync/AGENT.md](solutions/repo-mirror-sync/AGENT.md) |
+| `repo-mirror-sync` | `solutions/repo-mirror-sync/` | repo 多仓分层镜像同步 | M0~M8 已交付（70/70 绿：基础库/扫描/构建产物静态结构/求解/融合守卫/告警/漂移检测/非特权融合校验/CI 触发与还原验证）；toolchain 基座 ubuntu:24.04（ADR-011，实际构建 V10~V14）；CI 三流水线已实测（V16~V18，ADR-012）+ 制品还原 T1~T7；待执行：dispatch/schedule 收口（合 main 后）与 FR-D2 合并裁决（§12.3） | [solutions/repo-mirror-sync/AGENT.md](solutions/repo-mirror-sync/AGENT.md) |
 
 每个方案目录内的固定结构（详细规则见该方案 `docs/04`）：
 
@@ -50,3 +50,4 @@ python3 tests/run_tests.py            # 运行全部测试（纯标准库，Linu
 | 1.1.0 | 2026-11-27 | 重构为多方案仓库：方案产出迁入 `solutions/repo-mirror-sync/`；新增 manifest、tests、reports、AGENT.md |
 | 1.1.1 | 2026-11-28 | 方案状态更新：M6 漂移检测交付（`tools/detect_drift.py`，SC-M6-01~06 全绿，65/65）；待执行项收敛至 Linux 实际构建/CI 运行与 FR-D2 合并裁决 |
 | 1.1.2 | 2026-11-28 | 方案状态更新：M7 非特权融合校验交付（`tools/fuse_verify.py`，SC-M7-01~04 全绿，69/69）；toolchain 基座换 ubuntu:24.04（ADR-011）；实际构建 V10~V14 已 Linux 实测，待执行项收敛至 CI 运行与 FR-D2 合并裁决 |
+| 1.1.3 | 2026-11-28 | 方案状态更新：M8 CI 触发与还原验证交付（三流水线实测 V16~V18 全绿，ADR-012/013；制品还原 T1~T7；SC-M1-08 补 F-9 回归，70/70）；待执行项收敛至 dispatch/schedule 收口（合 main 后）与 FR-D2 合并裁决 |
