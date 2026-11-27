@@ -137,60 +137,75 @@ else
   log "tailscale 未启用（ENABLE_TAILSCALE=0）"
 fi
 
-# 5.7 DSH Web（TD-003：镜像内置 @deepseek-ai/dsh，dsh web 127.0.0.1:3081，dev 身份；PLAN §6.6）
-# 反代形态：Caddy handle_path 剥 /dsh 前缀转发；dsh 以 --public-url 感知前缀入口（D12 实测相对资源引用 ./assets）
-if [ "$ENABLE_DSH" = "1" ]; then
-  DSH_BIN="$(ls /opt/nvm/versions/node/*/bin/dsh 2>/dev/null | head -1)"
-  NODE_BIN_DIR="$(dirname "${DSH_BIN:-/nonexist}" 2>/dev/null || true)"
-  if [ -n "$NODE_BIN_DIR" ] && [ -x "${NODE_BIN_DIR}/dsh" ]; then
-    mkdir -p "$RUN_DIR/dsh"
-    DSH_PUBLIC_URL="${DSH_PUBLIC_URL:-http://127.0.0.1:8080/dsh/}"
-    # D12 实证：dsh fence 在代理场景校验 X-Forwarded-Host 必须 ∈ trusted-host（Caddy 无法删/改 XFH 自动头）
-    DSH_TRUSTED_HOST="$(printf '%s' "$DSH_PUBLIC_URL" | sed -E 's|^https?://([^/]+).*|\1|')"
-    (
-      runuser -u "$DEV_USER" -- env \
-        HOME="/home/$DEV_USER" PATH="${NODE_BIN_DIR}:/usr/local/bin:/usr/bin:/bin" DSH_PUBLIC_URL="$DSH_PUBLIC_URL" DSH_TRUSTED_HOST="$DSH_TRUSTED_HOST" \
-        sh -c 'cd "$HOME" && dsh web --profile desktop --host 127.0.0.1 --port 3081 --no-open --public-url "$DSH_PUBLIC_URL" --trusted-host "$DSH_TRUSTED_HOST" >/tmp/dsh-web.log 2>&1' \
-        || runuser -u "$DEV_USER" -- env \
-        HOME="/home/$DEV_USER" PATH="${NODE_BIN_DIR}:/usr/local/bin:/usr/bin:/bin" DSH_PUBLIC_URL="$DSH_PUBLIC_URL" DSH_TRUSTED_HOST="$DSH_TRUSTED_HOST" \
-        sh -c 'cd "$HOME" && dsh web --host 127.0.0.1 --port 3081 --no-open --public-url "$DSH_PUBLIC_URL" --trusted-host "$DSH_TRUSTED_HOST" >/tmp/dsh-web.log 2>&1'
-    ) &
-    # dsh web 每次启动生成一次性 token 登录链接；抓取落盘 + 打进容器日志，供 docker logs 获取
-    sleep 6
-    DSH_URL="$(grep -o 'http://[^ ]*token=[A-Za-z0-9._-]*' /tmp/dsh-web.log 2>/dev/null | head -1)"
-    if [ -n "$DSH_URL" ]; then
-      printf '%s\n' "$DSH_URL" > "$RUN_DIR/dsh/url.txt"
-      log "DSH 登录链接（浏览器把前缀换成宿主映射后访问）：$DSH_URL"
+# 5.7/5.8 DSH Web + Magpie 的启动封装为函数，延迟到 Caddy 监听之后执行（见文末）。
+# 依据（D12/D13 排障实证）：dsh fence 在 entrypoint 早期（反代未就绪时）启动会出现代理信任链异常
+# （同参数同 env 的实例在 Caddy 就绪后启动则完全正常，复刻实验 3083=200 / entrypoint 3081=401）。
+# desktop 档案为 Electron 应用专属（dsh CLI 报 "profile desktop is managed exclusively by the
+# Electron application"），CLI 侧一律使用默认 web profile；desktop 档案保留在镜像内供云端导入参考。
+start_dsh() {
+  if [ "$ENABLE_DSH" = "1" ]; then
+    DSH_BIN="$(ls /opt/nvm/versions/node/*/bin/dsh 2>/dev/null | head -1)"
+    NODE_BIN_DIR="$(dirname "${DSH_BIN:-/nonexist}" 2>/dev/null || true)"
+    if [ -n "$NODE_BIN_DIR" ] && [ -x "${NODE_BIN_DIR}/dsh" ]; then
+      mkdir -p "$RUN_DIR/dsh"
+      DSH_PUBLIC_URL="${DSH_PUBLIC_URL:-http://127.0.0.1:8080/dsh/}"
+      # D12 实证：dsh fence 在代理场景校验 X-Forwarded-Host 必须 ∈ trusted-host（Caddy 无法删/改 XFH 自动头）
+      DSH_TRUSTED_HOST="$(printf '%s' "$DSH_PUBLIC_URL" | sed -E 's|^https?://([^/]+).*|\1|')"
+      (
+        runuser -u "$DEV_USER" -- env \
+          HOME="/home/$DEV_USER" PATH="${NODE_BIN_DIR}:/usr/local/bin:/usr/bin:/bin" DSH_PUBLIC_URL="$DSH_PUBLIC_URL" DSH_TRUSTED_HOST="$DSH_TRUSTED_HOST" \
+          sh -c 'cd "$HOME" && exec dsh web --host 127.0.0.1 --port 3081 --no-open --public-url "$DSH_PUBLIC_URL" --trusted-host "$DSH_TRUSTED_HOST" >>/tmp/dsh-web.log 2>&1'
+      ) &
+      sleep 3
+      DSH_URL="$(grep -o 'http://[^ ]*token=[A-Za-z0-9._-]*' /tmp/dsh-web.log 2>/dev/null | tail -1)"
+      if [ -n "$DSH_URL" ]; then
+        printf '%s\n' "$DSH_URL" > "$RUN_DIR/dsh/url.txt"
+        log "DSH 登录链接（把入口前缀换成宿主映射后访问）：$DSH_URL"
+      else
+        log "警告：未抓取到 dsh 登录 token 链接（docker exec cat /tmp/dsh-web.log 查看）"
+      fi
+      touch "$RUN_DIR/dsh/enabled"
+      log "DSH 已启动（dsh web 默认档案，127.0.0.1:3081；日志 /tmp/dsh-web.log）"
     else
-      log "警告：未抓取到 dsh 登录 token 链接（docker exec cat /tmp/dsh-web.log 查看）"
+      log "警告：ENABLE_DSH=1 但镜像内未找到 dsh 可执行，/dsh 将返回 503"
     fi
-    touch "$RUN_DIR/dsh/enabled"
-    log "DSH 已启动（dsh web desktop 档案，127.0.0.1:3081；日志 /tmp/dsh-web.log）"
   else
-    log "警告：ENABLE_DSH=1 但镜像内未找到 dsh 可执行，/dsh 将返回 503"
+    log "DSH 未启用（ENABLE_DSH=0）"
   fi
-else
-  log "DSH 未启用（ENABLE_DSH=0）"
-fi
+}
 
-# 5.8 Magpie（TD-003/D11/D14：镜像内置 magpie-cli，web 面板 3430 + 网关 3425 单进程，dev 身份）
-# 反代形态：Caddy handle_path 剥 /magpie 前缀转发；MAGPIE_WEB_URL 让 magpie 按前缀打印代理入口（D13 实测）
-if [ "$ENABLE_MAGPIE" = "1" ]; then
-  if command -v magpie >/dev/null 2>&1; then
-    mkdir -p "$RUN_DIR/magpie"
-    MAGPIE_WEB_URL="${MAGPIE_WEB_URL:-http://127.0.0.1:8080/magpie/}"
-    runuser -u "$DEV_USER" -- env \
-      HOME="/home/$DEV_USER" MAGPIE_WEB_KEY="${MAGPIE_WEB_KEY:-devbox-magpie-key}" MAGPIE_WEB_URL="$MAGPIE_WEB_URL" \
-      sh -c 'cd "$HOME" && magpie web --addr 127.0.0.1:3430 --no-open --gateway >/tmp/magpie-web.log 2>&1' &
-    touch "$RUN_DIR/magpie/enabled"
-    log "Magpie 已启动（面板 127.0.0.1:3430 + 网关 3425；入口 /magpie/?k= 和 MAGPIE_WEB_KEY，默认 devbox-magpie-key）"
+start_magpie() {
+  if [ "$ENABLE_MAGPIE" = "1" ]; then
+    if command -v magpie >/dev/null 2>&1; then
+      mkdir -p "$RUN_DIR/magpie"
+      MAGPIE_WEB_URL="${MAGPIE_WEB_URL:-http://127.0.0.1:8080/magpie/}"
+      runuser -u "$DEV_USER" -- env \
+        HOME="/home/$DEV_USER" MAGPIE_WEB_KEY="${MAGPIE_WEB_KEY:-devbox-magpie-key}" MAGPIE_WEB_URL="$MAGPIE_WEB_URL" \
+        sh -c 'cd "$HOME" && exec magpie web --addr 127.0.0.1:3430 --no-open --gateway >/tmp/magpie-web.log 2>&1' &
+      touch "$RUN_DIR/magpie/enabled"
+      log "Magpie 已启动（面板 127.0.0.1:3430 + 网关 3425；入口 /magpie/?k= 和 MAGPIE_WEB_KEY，默认 devbox-magpie-key）"
+    else
+      log "警告：ENABLE_MAGPIE=1 但镜像内未找到 magpie 可执行，/magpie 将返回 503"
+    fi
   else
-    log "警告：ENABLE_MAGPIE=1 但镜像内未找到 magpie 可执行，/magpie 将返回 503"
+    log "Magpie 未启用（ENABLE_MAGPIE=0）"
   fi
-else
-  log "Magpie 未启用（ENABLE_MAGPIE=0）"
-fi
+}
 
-# ---------- 6) Caddy 单端口统一反代，前台守护（PLAN §7.2.5/7.2.6） ----------
+# ---------- 6) Caddy 单端口统一反代（PLAN §7.2.5/7.2.6） ----------
+# 顺序（D12 时序实证）：Caddy 先监听 → dsh/magpie 在反代就绪后启动 → wait 前台守护
 log "Caddy 启动（对外 :8080，统一会话鉴权）"
-exec /usr/local/bin/caddy run --config /etc/devbox/caddy/Caddyfile --adapter caddyfile
+/usr/local/bin/caddy run --config /etc/devbox/caddy/Caddyfile --adapter caddyfile &
+CADDY_PID=$!
+_wait_i=0
+while [ "$_wait_i" -lt 30 ]; do
+  if curl -sf -o /dev/null "http://127.0.0.1:8080/" 2>/dev/null; then
+    break
+  fi
+  sleep 1
+  _wait_i=$((_wait_i + 1))
+done
+log "Caddy 就绪（等待 ${_wait_i}s），启动 DSH/Magpie"
+start_dsh
+start_magpie
+wait "$CADDY_PID"
