@@ -62,6 +62,18 @@
 			}
 		}
 
+		# magpie 面板 XHR 以绝对路径 /api/* 发出（前端限制，不带 /magpie 前缀），
+		# 按 Referer 归属 magpie，与 homepage 自身 /api/*（Referer 为首页路径）区分，避免误抢
+		@magpie_api {
+			path /api/*
+			header_regexp Referer "/magpie(/|$)"
+		}
+		handle @magpie_api {
+			reverse_proxy 127.0.0.1:3430 {
+				header_up Host 127.0.0.1:3430
+			}
+		}
+
 		# / → HomePage 导航首页（无匹配器兜底，必须置于 route 末位，否则吞掉上述全部路由）
 		# Next.js 16 校验 Host 白名单，反代需改写 Host 为 upstream 本址
 		handle {
