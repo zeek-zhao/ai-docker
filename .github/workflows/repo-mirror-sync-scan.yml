@@ -46,7 +46,7 @@ jobs:
       - name: 体积清单扫描（受控配额 + cursor 续跑；token 仅经环境变量注入）
         env:
           GH_TOKEN: ${{ secrets.MIRROR_SCAN_TOKEN }}
-        run: python3 tools/scan_inventory.py --repos out/repos.json --out out
+        run: PYTHONPATH=. python3 tools/scan_inventory.py --repos out/repos.json --out out
 
       - name: 上传扫描清单制品
         uses: actions/upload-artifact@v4

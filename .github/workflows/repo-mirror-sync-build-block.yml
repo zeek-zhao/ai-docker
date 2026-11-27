@@ -89,7 +89,7 @@ jobs:
       - name: 上传加密制品
         uses: actions/upload-artifact@v4
         with:
-          name: block-${BLOCK_ID:-verify-block}-${{ github.run_number }}
+          name: block-${{ inputs.block_id || 'verify-block' }}-${{ github.run_number }}
           path: |
             solutions/repo-mirror-sync/out/block.tar.age
             solutions/repo-mirror-sync/out/block.tar.sha256
