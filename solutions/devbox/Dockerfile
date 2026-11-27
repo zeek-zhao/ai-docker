@@ -38,7 +38,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       build-essential gcc g++ make cmake ninja-build gdb pkg-config \
       libssl-dev libcurl4-openssl-dev zlib1g-dev libbz2-dev \
       libsqlite3-dev libxml2-dev libyaml-dev \
-      zsh tmux bash-completion git age openssl \
+      zsh tmux bash-completion git age openssl jq \
       procps iproute2 \
  && locale-gen zh_CN.UTF-8 en_US.UTF-8 \
  && update-locale LANG=${DEFAULT_LANG} \
@@ -242,7 +242,10 @@ COPY --from=services /opt/homepage/ /opt/homepage/
 COPY config/caddy/Caddyfile /etc/devbox/caddy/Caddyfile
 COPY config/homepage/ /opt/homepage/config/
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/ttyd /usr/local/bin/filebrowser \
+COPY scripts/decrypt.sh scripts/restore.sh /usr/local/bin/
+COPY secrets/manifest.json /usr/local/share/devbox/manifest.json
+RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/decrypt.sh /usr/local/bin/restore.sh \
+      /usr/local/bin/ttyd /usr/local/bin/filebrowser \
       /usr/local/bin/caddy /usr/local/bin/tailscale /usr/local/bin/tailscaled /usr/local/bin/auth-gate \
  && mkdir -p /home/dev/data /run/devbox \
  && chmod 755 /home/dev/data

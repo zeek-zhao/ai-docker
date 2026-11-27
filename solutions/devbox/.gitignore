@@ -1,0 +1,5 @@
+# .gitignore —— zeek-ai-devbox（凭据红线：AGENTS.md §4 / PLAN §8.6）
+data/
+run/
+secrets/key.txt
+secrets/*.tmp

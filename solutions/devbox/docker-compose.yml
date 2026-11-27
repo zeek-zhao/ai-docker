@@ -33,6 +33,8 @@ services:
       # ---- 可选挂载（按需取消注释）----
       # age 私钥（只读；严禁提交仓库，严禁打入镜像）
       # - ./secrets/key.txt:/secrets/key.txt:ro
+      # 加密发布包目录（manifest + *.age；restore.sh 依次探测 /secrets-pkg 等）
+      # - ./secrets:/secrets-pkg:ro
       # docker socket（默认不挂；只读挂载仍有提权面，仅可信环境）
       # - /var/run/docker.sock:/var/run/docker.sock:ro
       # DSH 网关/面板二进制注入点（ENABLE_DSH=1 时需要）
