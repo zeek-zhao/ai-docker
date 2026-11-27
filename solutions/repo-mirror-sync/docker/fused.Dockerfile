@@ -24,6 +24,6 @@ RUN ln -s /mnt/manifest /workspace/manifest
 ENV LOWERDIR="/mnt/layers/toolchain:/mnt/layers/self-dev" \
     MOUNT_POINT="/workspace/merged"
 
-# 实际挂载与验收由 CI 的特权步骤执行（.github/workflows/verify-fuse.yml，
-# 阶段 4；Linux 待执行项——诚实性，AGENTS §3.5）。
+# 实际挂载由消费侧运行时执行（ADR-011，docs/01 §13.1）；CI 验收=非特权
+# 用户态等价校验 tools/fuse_verify.py（.github/workflows/verify-fuse.yml）。
 CMD ["sh", "-c", "mount -t overlay overlay -o lowerdir=${LOWERDIR} ${MOUNT_POINT}"]

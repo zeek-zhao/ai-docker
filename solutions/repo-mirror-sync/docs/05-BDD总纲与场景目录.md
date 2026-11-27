@@ -2,9 +2,9 @@
 
 | 文档编号 | DSH-PLAN-005 |
 |---|---|
-| 版本 | 1.0.6 |
+| 版本 | 1.0.7 |
 | 日期 | 2026-11-28 |
-| 状态 | 生效（M1~M6 全部场景已实现，绿灯） |
+| 状态 | 生效（M1~M7 全部场景已实现，绿灯） |
 
 **修订历史**
 
@@ -17,6 +17,7 @@
 | 1.0.4 | 2026-11-27 | §6 状态修正：SC-M4-01~04 已实现（绿灯）；M5 仍为规划 |
 | 1.0.5 | 2026-11-28 | §6 状态修正：SC-M5-01~04 已实现（绿灯）；M1~M5 场景目录全部实现，总纲进入维护态 |
 | 1.0.6 | 2026-11-28 | §6 新增 SC-M6-01~06（漂移检测 FR-D1/IF-2）已实现（绿灯）；状态行更新 M1~M6 |
+| 1.0.7 | 2026-11-28 | §6 新增 SC-M7-01~04（非特权融合校验 FR-F1~F3/ADR-011）已实现（绿灯）；SC-M2 行补实际构建实测状态；状态行更新 M1~M7 |
 
 ## 1 范围
 
@@ -64,11 +65,12 @@
 | 场景编号 | feature 文件 | 能力 | 需求映射 | 状态 |
 |---|---|---|---|---|
 | SC-M1-01~07 | features/scan_inventory.feature | 体积清单扫描（14 字段、sha 跳过、配额/cursor、oversized、落盘、token 不泄漏） | FR-S1~S5、NFR-1 | 已实现（绿灯） |
-| SC-M2-01~04 | features/docker_artifacts.feature | 构建产物静态结构校验（实际构建待 Linux 阶段 4） | FR-B1~B4 | 已实现（绿灯） |
+| SC-M2-01~04 | features/docker_artifacts.feature | 构建产物静态结构校验（实际构建已于 Linux 实测 V10~V14，CI 运行待执行） | FR-B1~B4 | 已实现（绿灯） |
 | SC-M3-01~05 | features/plan.feature | 组合求解 plan.json（预算、装箱、oversized 降级） | FR-P1~P5 | 已实现（绿灯） |
 | SC-M4-01~04 | features/merge_guard.feature | 融合守卫（选举裁决一致、lowerdir、隔离） | FR-F1~F3 | 已实现（绿灯） |
 | SC-M5-01~04 | features/alert.feature | 告警事件→payload、节流 | FR-A1~A2 | 已实现（绿灯） |
 | SC-M6-01~06 | features/detect_drift.feature | 漂移检测（上游 HEAD vs ls-remote 只比 sha、mirror_sha 写回、预算/cursor、白名单事件、探测不占配额） | FR-D1、IF-2 | 已实现（绿灯） |
+| SC-M7-01~04 | features/fuse_verify.feature | 非特权融合校验（keep/pin/isolate 用户态物化、零特权依赖、决策表落盘、overlay.py 同源重算） | FR-F1~F3、ADR-011 | 已实现（绿灯） |
 
 > 状态语义：「规划」= 里程碑未开始，feature 尚未编写，测试套件无对应用例（不产生红灯）；
 > 「场景先行」= feature 已入库、实现未落（此时测试为红灯，按 docs/06 §5 须立即进入实现）；

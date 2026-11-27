@@ -55,11 +55,18 @@ def then_from_digest(ctx):
         "FROM 未以 digest 固定（sha256 或 DIGEST 构建参数）：%s" % ctx["current_file"]
 
 
-@step("then", r"安装层覆盖 (\S+)、(\S+)、(\S+) 三类工具")
-def then_tools(ctx, t1, t2, t3):
+@step("then", r"安装层覆盖 (.+?) 两类工具")
+def then_tools(ctx, names):
     text = ctx["dockerfiles"][ctx["current_file"]]
-    for name in (t1, t2, t3):
+    for name in names.split("、"):
         assert name in text, "工具 %s 未出现在安装层：%s" % (name, ctx["current_file"])
+
+
+@step("then", r"FROM 基于 (\S+) (\S+) 基础镜像")
+def then_from_base_image(ctx, image, tag):
+    text = ctx["dockerfiles"][ctx["current_file"]]
+    assert re.search(r"(?m)^FROM\s+%s:%s@" % (re.escape(image), re.escape(tag)), text), \
+        "FROM 未基于 %s:%s 基础镜像 digest 固定：%s" % (image, tag, ctx["current_file"])
 
 
 @step("then", "全文件不引用 latest 标签")

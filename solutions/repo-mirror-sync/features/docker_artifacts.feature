@@ -9,7 +9,8 @@
   场景: L0 工具链镜像固定 digest 且仅含工具链
     假如 Dockerfile 文件 "docker/toolchain.Dockerfile" 已存在
     那么 FROM 指令以 digest 固定基础镜像
-    而且 安装层覆盖 git、age、overlayfs 三类工具
+    而且 FROM 基于 ubuntu 24.04 基础镜像
+    而且 安装层覆盖 git、age 两类工具
     而且 全文件不引用 latest 标签
 
   @SC-M2-02

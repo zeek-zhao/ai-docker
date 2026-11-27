@@ -1,6 +1,6 @@
 # .github/workflows/verify-fuse.yml — 融合视图验收流水线（FR-B2，阶段 4）
 # 目标环境：Linux（仓库相对路径；仓库根 AGENT.md）。
-# 静态结构达标即可入库；实际 overlay 挂载验收在 Linux runner 待执行。
+# 静态结构达标即可入库；实际挂载属消费侧运行时语义，CI 验收=非特权用户态等价校验（ADR-011）。
 name: verify-fuse
 
 on:
@@ -42,7 +42,14 @@ jobs:
           -f docker/fused.Dockerfile
           --build-arg TOOLCHAIN_IMAGE=repo-mirror-sync/toolchain:L0
           -t fused-view:verify .
-        # 特权挂载与 lowerdir 层序由 plan 结果注入（阶段 4 完善）；
+        # lowerdir 层序由 plan 结果注入（阶段 4 完善）；内核挂载属消费侧运行时语义（ADR-011）。
         # 哈希门禁：融合产物 sha256 必须等于解密前清单记录值。
+      - name: 非特权融合校验（用户态等价，tools/fuse_verify.py；ADR-011）
+        run: >
+          python3 tools/fuse_verify.py
+          --layers toolchain=out/layers/toolchain
+          --layers self-dev=out/layers/self-dev
+          --out out/fuse-verify
+        # 层目录由制品解包与 plan 结果注入（阶段 4 完善，V9）；harness 零特权要求。
       - name: 哈希门禁
         run: sha256sum out/fused.tar && test -f out/fuse-verify.passed

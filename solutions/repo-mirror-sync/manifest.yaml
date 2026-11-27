@@ -22,11 +22,11 @@ entries:
 
   # ---- ISO 规划文档族 ----
   - { path: "docs/01-方案总览.md",           kind: doc, role: "DSH-PLAN-001 方案总览（完整方案拆解）",            state: delivered }
-  - { path: "docs/02-架构设计.md",           kind: doc, role: "DSH-PLAN-002 架构设计（五视图 + ADR-001~010）",    state: delivered }
+  - { path: "docs/02-架构设计.md",           kind: doc, role: "DSH-PLAN-002 架构设计（五视图 + ADR-001~011）",    state: delivered }
   - { path: "docs/03-需求规格.md",           kind: doc, role: "DSH-PLAN-003 需求规格（FR×23/NFR×7/IF×5）",       state: delivered }
   - { path: "docs/04-仓库规划与流程规范.md", kind: doc, role: "DSH-PLAN-004 仓库规划与流程规范",                 state: delivered }
   - { path: "docs/05-BDD总纲与场景目录.md",  kind: doc, role: "DSH-PLAN-005 BDD 五步法与场景目录",              state: delivered }
-  - { path: "docs/06-开发计划与里程碑.md",   kind: doc, role: "DSH-PLAN-006 里程碑 M0~M5 与任务清单",           state: delivered }
+  - { path: "docs/06-开发计划与里程碑.md",   kind: doc, role: "DSH-PLAN-006 里程碑 M0~M7 与任务清单",           state: delivered }
 
   # ---- 策略唯一来源 ----
   - { path: "config/scan.yaml",   kind: config, role: 扫描频率/请求上限/预算/size_class 阈值, state: delivered }
@@ -60,6 +60,7 @@ entries:
   - { path: "features/merge_guard.feature",      kind: test, role: "SC-M4-01~04 融合守卫行为场景（中文 Gherkin）", state: delivered }
   - { path: "features/alert.feature",            kind: test, role: "SC-M5-01~04 告警 payload 与节流行为场景（中文 Gherkin）", state: delivered }
   - { path: "features/detect_drift.feature",     kind: test, role: "SC-M6-01~06 漂移检测行为场景（中文 Gherkin）", state: delivered }
+  - { path: "features/fuse_verify.feature",      kind: test, role: "SC-M7-01~04 非特权融合校验行为场景（中文 Gherkin，ADR-011）", state: delivered }
   - { path: "tests/bdd_runner.py",             kind: test, role: 极简中文 Gherkin 解析与执行器,            state: delivered }
   - { path: "tests/test_bdd_features.py",      kind: test, role: BDD 场景 → unittest 桥接（load_tests 协议）, state: delivered }
   - { path: "tests/bdd_steps_scan.py",         kind: test, role: "SC-M1-01~07 步骤定义（FakeFetcher 注入）", state: delivered }
@@ -68,11 +69,13 @@ entries:
   - { path: "tests/bdd_steps_guard.py",        kind: test, role: "SC-M4-01~04 步骤定义（裁决一致性与静态出处断言）", state: delivered }
   - { path: "tests/bdd_steps_alert.py",        kind: test, role: "SC-M5-01~04 步骤定义（payload/节流/静态出处断言）", state: delivered }
   - { path: "tests/bdd_steps_drift.py",        kind: test, role: "SC-M6-01~06 步骤定义（FakeUpstream/FakeMirrorProber 注入）", state: delivered }
+  - { path: "tests/bdd_steps_fuse.py",         kind: test, role: "SC-M7-01~04 步骤定义（层夹具/独立重算/零特权静态断言）", state: delivered }
 
   # ---- 测试报告 ----
   - { path: "reports/test-report.json", kind: report, role: 测试结果机器可读报告（运行时生成）, state: runtime-generated }
   - { path: "reports/test-report.md",   kind: report, role: 测试设计与结果报告（人读）,         state: delivered }
   - { path: "reports/acceptance-20261128-docker-build.md", kind: report, role: "阶段4 实际构建验证记录（V1~V7 已执行；工具链缺包发现 F-1→Issue #4）", state: delivered }
+  - { path: "reports/acceptance-20261128-ubuntu24-fuse-verify.md", kind: report, role: "V2 修复轮实测记录（ubuntu:24.04 基座 V10~V14；harness 非特权端到端 V15；F-1 关闭）", state: delivered }
 
   # ---- 不入库目录占位 ----
   - { path: "out/.gitkeep",   kind: keep, role: 运行产物区占位（目录本体不入库）, state: delivered }
@@ -81,12 +84,13 @@ entries:
   # ---- 按阶段交付（阶段 1 起逐个由 planned 翻转为 delivered） ----
   - { path: "tools/scan_inventory.py", kind: code, role: "阶段1 扫描清单（API 配额+cursor 续跑；SC-M1-01~07）", state: delivered }
   - { path: "tools/detect_drift.py",   kind: code, role: "阶段3 漂移检测（上游 HEAD vs ls-remote，只比 sha；SC-M6-01~06）", state: delivered }
+  - { path: "tools/fuse_verify.py",    kind: code, role: "阶段4 非特权融合校验 harness（用户态等价；复用 overlay.py/merge_guard 唯一裁决；SC-M7-01~04）", state: delivered }
   - { path: "tools/plan.py",           kind: code, role: "阶段3 组合求解器（选块+FFD 装箱+降级；SC-M3-01~05）", state: delivered }
   - { path: "tools/merge_guard.py",    kind: code, role: "阶段4 融合守卫（唯一裁决入口编排+层数两级融合建议；SC-M4-01~04）", state: delivered }
   - { path: "tools/alert.py",          kind: code, role: "阶段5 告警 payload 生成+节流状态机（网络层薄封装；SC-M5-01~04）", state: delivered }
-  - { path: "docker/toolchain.Dockerfile", kind: image, role: "阶段2 L0 工具链镜像（digest 固定，SC-M2-01）", state: delivered }
+  - { path: "docker/toolchain.Dockerfile", kind: image, role: "阶段2 L0 工具链镜像（ubuntu:24.04 digest 固定，SC-M2-01；ADR-011）", state: delivered }
   - { path: "docker/block.Dockerfile",     kind: image, role: "阶段2 块镜像定义（索引不进继承链，SC-M2-02）", state: delivered }
   - { path: "docker/fused.Dockerfile",     kind: image, role: "阶段4 融合视图定义（静态结构先行，SC-M2-03）", state: delivered }
   - { path: ".github/workflows/scan.yml",       kind: ci, role: "阶段1 定时扫描流水线（cron 对齐 config，SC-M2-04）", state: delivered }
   - { path: ".github/workflows/build-block.yml", kind: ci, role: "阶段2 块构建流水线（全层加密+sha256 tag）", state: delivered }
-  - { path: ".github/workflows/verify-fuse.yml", kind: ci, role: "阶段4 融合验收流水线（实际挂载待 Linux）", state: delivered }
+  - { path: ".github/workflows/verify-fuse.yml", kind: ci, role: "阶段4 融合验收流水线（CI 验收=非特权用户态等价校验，ADR-011）", state: delivered }
