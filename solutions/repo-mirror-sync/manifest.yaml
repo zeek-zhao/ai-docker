@@ -1,0 +1,103 @@
+# manifest.yaml — 「repo 多仓分层镜像同步」方案清单（本方案全部文件与产物）
+# 维护规则（AGENTS §6 / docs/04 §4）：
+#   * 新增/删除方案内文件必须同步更新本清单；
+#   * state 语义：
+#       delivered        已交付入库（tests 校验：必须存在于磁盘）
+#       runtime-generated 运行时生成（tests 不强校验，存在与否取决于是否已运行）
+#       planned          规划中、按阶段交付（tests 校验：当前必须【不存在】，防清单腐化）
+#   * 路径一律相对本方案目录（solutions/repo-mirror-sync/）；仓库级共享文件用 ../../ 前缀。
+
+manifest_version: 1
+solution: repo-mirror-sync
+generated: 2026-11-27
+title: repo 多仓库「分层镜像 + 低频探测 + 标签编排」同步方案
+source: 《方案三_repo多仓分层镜像同步方案.md》（需求方提供，538 行；仓库外参考件，state=external，不入库）
+
+entries:
+  # ---- 仓库级共享文件（相对仓库根） ----
+  - { path: "../../AGENTS.md",      kind: doc,   role: Agent 全局工作规范（全局生效）,                     state: delivered }
+  - { path: "../../README.md",      kind: doc,   role: 仓库入口与方案索引（多方案仓库结构）,               state: delivered }
+  - { path: "../../.gitignore",     kind: infra, role: 版本控制边界（任意深度 out/local/tmp/密钥不入库）,   state: delivered }
+  - { path: "../../.gitattributes", kind: infra, role: 行尾与文本规范化（跨平台 LF 统一）,                state: delivered }
+
+  # ---- ISO 规划文档族 ----
+  - { path: "docs/01-方案总览.md",           kind: doc, role: "DSH-PLAN-001 方案总览（完整方案拆解）",            state: delivered }
+  - { path: "docs/02-架构设计.md",           kind: doc, role: "DSH-PLAN-002 架构设计（五视图 + ADR-001~011）",    state: delivered }
+  - { path: "docs/03-需求规格.md",           kind: doc, role: "DSH-PLAN-003 需求规格（FR×23/NFR×7/IF×5）",       state: delivered }
+  - { path: "docs/04-仓库规划与流程规范.md", kind: doc, role: "DSH-PLAN-004 仓库规划与流程规范",                 state: delivered }
+  - { path: "docs/05-BDD总纲与场景目录.md",  kind: doc, role: "DSH-PLAN-005 BDD 五步法与场景目录",              state: delivered }
+  - { path: "docs/06-开发计划与里程碑.md",   kind: doc, role: "DSH-PLAN-006 里程碑 M0~M7 与任务清单",           state: delivered }
+
+  # ---- 策略唯一来源 ----
+  - { path: "config/scan.yaml",   kind: config, role: 扫描频率/请求上限/预算/size_class 阈值, state: delivered }
+  - { path: "config/policy.yaml", kind: config, role: 块/组合/加密/选举规则/告警（唯一出处）, state: delivered }
+
+  # ---- 方案管理产物 ----
+  - { path: "manifest.yaml", kind: manifest, role: 本清单（方案全部文件与产物）,             state: delivered }
+  - { path: "AGENT.md",      kind: doc,      role: AI 接手提示词（Linux 服务器可移植）,     state: delivered }
+
+  # ---- tools 基础库（阶段 0 交付） ----
+  - { path: "tools/__init__.py",   kind: code, role: tools 包标识,                                   state: delivered }
+  - { path: "tools/yaml_lite.py",  kind: code, role: 轻量 YAML 子集解析器（仅标准库，config 唯一解析入口）, state: delivered }
+  - { path: "tools/policy.py",     kind: code, role: policy.yaml/scan.yaml 加载与校验层,              state: delivered }
+  - { path: "tools/budget.py",     kind: code, role: 预算公式与 size_class 派生（docs/01 §8/§9.1）,   state: delivered }
+  - { path: "tools/overlay.py",    kind: code, role: 同名路径裁决与融合层数校验（ADR-005/H9 唯一实现）, state: delivered }
+  - { path: "tools/packing.py",    kind: code, role: FFD 装箱（FR-P3，单块不可跨 job）,               state: delivered }
+
+  # ---- 测试（本轮交付） ----
+  - { path: "tests/test_yaml_lite.py",        kind: test, role: "TC-Y* 配置解析器用例",           state: delivered }
+  - { path: "tests/test_config_validation.py", kind: test, role: "TC-C* 策略配置与确认参数用例",  state: delivered }
+  - { path: "tests/test_budget.py",           kind: test, role: "TC-B* 预算公式/size_class 用例", state: delivered }
+  - { path: "tests/test_overlay.py",          kind: test, role: "TC-O* 选举规则/融合层数用例",    state: delivered }
+  - { path: "tests/test_packing.py",          kind: test, role: "TC-P* FFD 装箱用例",            state: delivered }
+  - { path: "tests/test_docs_manifest.py",    kind: test, role: "TC-M* 文档/清单一致性用例",      state: delivered }
+  - { path: "tests/run_tests.py",             kind: test, role: 测试入口（输出 reports/test-report.json）, state: delivered }
+
+  # ---- BDD 场景层（阶段 1 起，docs/05） ----
+  - { path: "features/scan_inventory.feature", kind: test, role: "SC-M1-01~07 扫描器行为场景（中文 Gherkin）", state: delivered }
+  - { path: "features/docker_artifacts.feature", kind: test, role: "SC-M2-01~04 构建产物静态结构场景（中文 Gherkin）", state: delivered }
+  - { path: "features/plan.feature",             kind: test, role: "SC-M3-01~05 组合求解行为场景（中文 Gherkin）", state: delivered }
+  - { path: "features/merge_guard.feature",      kind: test, role: "SC-M4-01~04 融合守卫行为场景（中文 Gherkin）", state: delivered }
+  - { path: "features/alert.feature",            kind: test, role: "SC-M5-01~04 告警 payload 与节流行为场景（中文 Gherkin）", state: delivered }
+  - { path: "features/detect_drift.feature",     kind: test, role: "SC-M6-01~06 漂移检测行为场景（中文 Gherkin）", state: delivered }
+  - { path: "features/fuse_verify.feature",      kind: test, role: "SC-M7-01~04 非特权融合校验行为场景（中文 Gherkin，ADR-011）", state: delivered }
+  - { path: "features/merge_arbitration.feature", kind: test, role: "SC-M10-01~06 合并裁决行为场景（中文 Gherkin，docs/01 §12.3）", state: delivered }
+  - { path: "tests/bdd_runner.py",             kind: test, role: 极简中文 Gherkin 解析与执行器,            state: delivered }
+  - { path: "tests/test_bdd_features.py",      kind: test, role: BDD 场景 → unittest 桥接（load_tests 协议）, state: delivered }
+  - { path: "tests/bdd_steps_scan.py",         kind: test, role: "SC-M1-01~07 步骤定义（FakeFetcher 注入）", state: delivered }
+  - { path: "tests/bdd_steps_docker.py",       kind: test, role: "SC-M2-01~04 步骤定义（静态结构断言）", state: delivered }
+  - { path: "tests/bdd_steps_plan.py",         kind: test, role: "SC-M3-01~05 步骤定义（纯计算求解断言）", state: delivered }
+  - { path: "tests/bdd_steps_guard.py",        kind: test, role: "SC-M4-01~04 步骤定义（裁决一致性与静态出处断言）", state: delivered }
+  - { path: "tests/bdd_steps_alert.py",        kind: test, role: "SC-M5-01~04 步骤定义（payload/节流/静态出处断言）", state: delivered }
+  - { path: "tests/bdd_steps_drift.py",        kind: test, role: "SC-M6-01~06 步骤定义（FakeUpstream/FakeMirrorProber 注入）", state: delivered }
+  - { path: "tests/bdd_steps_fuse.py",         kind: test, role: "SC-M7-01~04 步骤定义（层夹具/独立重算/零特权静态断言）", state: delivered }
+  - { path: "tests/bdd_steps_arbitration.py",  kind: test, role: "SC-M10-01~06 步骤定义（裁决夹具/独立重算/隔离区落盘）", state: delivered }
+
+  # ---- 测试报告 ----
+  - { path: "reports/test-report.json", kind: report, role: 测试结果机器可读报告（运行时生成）, state: runtime-generated }
+  - { path: "reports/test-report.md",   kind: report, role: 测试设计与结果报告（人读）,         state: delivered }
+  - { path: "reports/acceptance-20261128-docker-build.md", kind: report, role: "阶段4 实际构建验证记录（V1~V7 已执行；工具链缺包发现 F-1→Issue #4）", state: delivered }
+  - { path: "reports/acceptance-20261128-ubuntu24-fuse-verify.md", kind: report, role: "V2 修复轮实测记录（ubuntu:24.04 基座 V10~V14；harness 非特权端到端 V15；F-1 关闭）", state: delivered }
+  - { path: "reports/acceptance-20261128-ci-restore.md", kind: report, role: "M8 轮 CI 触发与产物还原记录（三流水线 V16~V18 全绿；本地还原 T1~T7；F-4~F-9 登记）", state: delivered }
+  - { path: "reports/acceptance-20261128-alert-dispatch.md", kind: report, role: "M9 阶段5 告警投递与缓存治理实测记录（github-issue 真发 Issue #8+节流抑制；cache LRU；GH_TOKENS 冒烟；F-10~F-14 登记）", state: delivered }
+
+  # ---- 不入库目录占位 ----
+  - { path: "out/.gitkeep",   kind: keep, role: 运行产物区占位（目录本体不入库）, state: delivered }
+  - { path: "local/.gitkeep", kind: keep, role: 临时脚本区占位（目录本体不入库，7 天治理）, state: delivered }
+
+  # ---- 按阶段交付（阶段 1 起逐个由 planned 翻转为 delivered） ----
+  - { path: "tools/scan_inventory.py", kind: code, role: "阶段1 扫描清单（API 配额+cursor 续跑；SC-M1-01~07）", state: delivered }
+  - { path: "tools/detect_drift.py",   kind: code, role: "阶段3 漂移检测（上游 HEAD vs ls-remote，只比 sha；SC-M6-01~06）", state: delivered }
+  - { path: "tools/fuse_verify.py",    kind: code, role: "阶段4 非特权融合校验 harness（用户态等价；复用 overlay.py/merge_guard 唯一裁决；SC-M7-01~04）", state: delivered }
+  - { path: "tools/merge_arbitration.py", kind: code, role: "阶段3 合并裁决（FR-D2，docs/01 §12.3：drop/quarantine + §13.2 内容级去重；委托 merge_guard 唯一裁决；SC-M10-01~06）", state: delivered }
+  - { path: "tools/plan.py",           kind: code, role: "阶段3 组合求解器（选块+FFD 装箱+降级；SC-M3-01~05）", state: delivered }
+  - { path: "tools/merge_guard.py",    kind: code, role: "阶段4 融合守卫（唯一裁决入口编排+层数两级融合建议；SC-M4-01~04）", state: delivered }
+  - { path: "tools/alert.py",          kind: code, role: "阶段5 告警 payload 生成+节流状态机（纯逻辑，网络层独立于 notify.py；snapshot/restore 跨进程 H10；SC-M5-01~04）", state: delivered }
+  - { path: "tools/notify.py",         kind: code, role: "阶段5 告警投递网络层（唯一网络点；github-issue/feishu sender+节流落盘恢复；SC-M9-01~03）", state: delivered }
+  - { path: "tools/cache_gc.py",       kind: code, role: "阶段5 缓存 LRU 清理与预算审计（limits 唯一出处；加密层豁免；SC-M9-05~08）", state: delivered }
+  - { path: "docker/toolchain.Dockerfile", kind: image, role: "阶段2 L0 工具链镜像（ubuntu:24.04 digest 固定，SC-M2-01；ADR-011）", state: delivered }
+  - { path: "docker/block.Dockerfile",     kind: image, role: "阶段2 块镜像定义（索引不进继承链，SC-M2-02）", state: delivered }
+  - { path: "docker/fused.Dockerfile",     kind: image, role: "阶段4 融合视图定义（静态结构先行，SC-M2-03）", state: delivered }
+  - { path: "../../.github/workflows/repo-mirror-sync-scan.yml",       kind: ci, role: "阶段1 定时扫描流水线（cron 对齐 config；ADR-012 迁仓库根级；漂移检测+FR-A1 告警投递接入；SC-M2-04/SC-M9-04）", state: delivered }
+  - { path: "../../.github/workflows/repo-mirror-sync-build-block.yml", kind: ci, role: "阶段2 块构建流水线（全层加密+sha256；镜像内 fail-fast 绑定表检查；缓存治理审计（FR-A2）；ADR-012）", state: delivered }
+  - { path: "../../.github/workflows/repo-mirror-sync-verify-fuse.yml", kind: ci, role: "阶段4 融合验收流水线（非特权用户态等价校验+加密往返哈希门禁；缓存治理审计（FR-A2）；ADR-011/012）", state: delivered }

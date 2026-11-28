@@ -1,0 +1,54 @@
+# policy.yaml — 块、组合、加密、选举规则、告警（唯一出处，禁止在脚本中硬编码）
+# 决策依据：docs/02-架构设计.md ADR-001/005/006/007/010；D3/D4/D5 由需求方 2026-11-27 确认
+# 修改本文件 = 策略变更：须同步更新对应 ADR 与修订历史（AGENTS.md §3.3 / §6）
+
+version: 1
+
+blocks:                            # 块 = 一个可独立拉取/构建的单元
+  - id: block-self
+    match: { label: self-dev }     # 自己开发的仓库：保证 < 预算，整块直拉
+    mode: whole
+    expect_max_gb: 4
+
+  - id: block-k8s
+    match: { topic: k8s }
+    mode: split-by-repo            # 超限按仓库切子块
+    oversized_policy: shallow      # 超大单仓：blob:none 浅克隆 + sparse-checkout（ADR-009）
+
+  - id: block-edge
+    match: { topic: edge }
+    mode: whole
+
+combos:                            # 预置组合
+  - id: full-reading               # 查全量：三块组合
+    blocks: [block-self, block-k8s, block-edge]
+    strategy: runtime-overlay
+    layout: prefix                 # D4：跨 topic 组合走前缀布局
+
+  - id: self-dev-flat              # 日常干活：单块扁平（repo sync 友好）
+    blocks: [block-self]
+    strategy: runtime-overlay
+    layout: flat
+
+encryption:                        # D3 确认：全层加密（ADR-007，风险已接受）
+  mode: full-layer                 # 交付边界全加密；运行时拉取后先解密再挂载
+  tool: age
+  key_ref: env:AGE_KEY             # 密钥仅环境变量注入，严禁入库
+  tag_identity: plain-content-sha256   # tag 用明文内容 sha256 保持逻辑身份与可回滚
+  cache_policy: artifacts-only     # 加密层进 artifacts 不进 cache（H1 对策）
+
+overlay:
+  layouts:                         # D4：混合布局，配置切换
+    self-dev: flat                 #   扁平整树，/opt/src/<repo-path>
+    combo: prefix                  #   前缀隔离，/opt/src/topic-<topic>/...
+  precedence: [toolchain, self-dev, k8s, edge]   # D5 选举规则：左高右低（ADR-005）
+  path_rules:
+    - { path: "manifest/**",     pin: toolchain }   # 公共索引永远用 toolchain 层
+    - { path: "**/.gitmodules",  pin: self-dev }
+    - { path: "**/build.sh",     isolate: true }    # 各 topic 自有脚本走前缀隔离
+  max_lowerdir: 8                  # 单次融合层数上限（H9）
+
+alert:
+  channels: [github-issue, feishu-webhook]
+  on: [budget_exceeded, scan_error, drift_detected, cache_pressure]   # 四类告警（ADR-010）
+  throttle: 1h                     # 防告警风暴（H10）

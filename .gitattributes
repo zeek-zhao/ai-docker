@@ -1,0 +1,6 @@
+# 跨平台文本规范化：AI 在 Windows 开发、在 Linux 服务器接手，行尾统一 LF
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
