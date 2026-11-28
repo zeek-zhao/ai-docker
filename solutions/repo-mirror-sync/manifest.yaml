@@ -80,6 +80,7 @@ entries:
   - { path: "reports/acceptance-20261128-ubuntu24-fuse-verify.md", kind: report, role: "V2 修复轮实测记录（ubuntu:24.04 基座 V10~V14；harness 非特权端到端 V15；F-1 关闭）", state: delivered }
   - { path: "reports/acceptance-20261128-ci-restore.md", kind: report, role: "M8 轮 CI 触发与产物还原记录（三流水线 V16~V18 全绿；本地还原 T1~T7；F-4~F-9 登记）", state: delivered }
   - { path: "reports/acceptance-20261128-alert-dispatch.md", kind: report, role: "M9 阶段5 告警投递与缓存治理实测记录（github-issue 真发 Issue #8+节流抑制；cache LRU；GH_TOKENS 冒烟；F-10~F-14 登记）", state: delivered }
+  - { path: "reports/acceptance-20261128-f4-closeout.md", kind: report, role: "F-4 收口验收（W1~W5/V19~V21：方案合入 main、三流水线注册 active、dispatch 实测全绿；Issue #7 划账）", state: delivered }
 
   # ---- 不入库目录占位 ----
   - { path: "out/.gitkeep",   kind: keep, role: 运行产物区占位（目录本体不入库）, state: delivered }

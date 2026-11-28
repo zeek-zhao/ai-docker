@@ -122,3 +122,4 @@ cat docs/01-方案总览.md              # 3) 读懂方案与决策参数 D1~D5
 | 1.0.9 | 2026-11-28 | 进度表更新：M9 告警与治理完成（FR-A1 真发验收 Issue #8；FR-A2 缓存 LRU；FR-A3 GH_TOKENS 轮转；79/79） |
 | 1.1.0 | 2026-11-28 | 进度表更新：M10 合并裁决完成（`tools/merge_arbitration.py`，FR-D2/Issue #3 收口，SC-M10-01~06 绿，85/85） |
 | 1.1.1 | 2026-11-28 | 治理增强：TC-M5 治理文档修订历史完整性断言（D-25 待办划账；AGENT/test-report/根 README 单调递增+末行最新+进度表与 docs/06 同步） |
+| 1.1.2 | 2026-11-28 | F-4 收口：方案合入 main（03e838e，PR #10 merged），三流水线注册 active+dispatch 实测全绿（验收记录 20261128-f4-closeout；Issue #7 划账） |
