@@ -21,6 +21,11 @@ log() { echo "[entrypoint] $*"; }
 
 # ---------- 1) 对齐权限：开发用户 UID/GID 对齐本地（PLAN §7.2.1） ----------
 mkdir -p "$RUN_DIR"
+# D37：ubuntu:24.04 基础镜像自带 ubuntu 用户/组（uid/gid=1000），与 compose 默认
+# HOST_UID/GID=1000 冲突（groupadd/useradd 报 already exists → set -e 退出 → restart 循环）。
+# 建账号前先清理内置 ubuntu 账号，其余 uid/gid 冲突仍按错误处理（真实占用需人工确认）
+userdel -r ubuntu 2>/dev/null || true
+groupdel ubuntu 2>/dev/null || true
 if ! getent group "$DEV_USER" >/dev/null 2>&1; then
   groupadd -g "$HOST_GID" "$DEV_USER"
 fi
