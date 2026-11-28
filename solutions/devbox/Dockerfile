@@ -205,7 +205,8 @@ RUN git clone --depth 1 "${VIM_FAST_REPO}" /tmp/vim-fast \
  && cp /tmp/vim-fast/vimrc-no-plug /root/.vimrc \
  && sed -i "s/chenxuan[^5]/${VIM_NAME}'/g" /root/.vimrc \
  && sed -i "s/ chenxuan/ ${VIM_NAME}/g" /root/.vimrc \
- && sed -i "s/1607772321@qq.com/${VIM_EMAIL}/g" /root/.vimrc \
+ && VIM_ADDR="$(echo "${VIM_EMAIL}" | awk -F/ '{print $NF}')" \
+ && sed -i "s|^iab ;e .*|iab ;e ${VIM_ADDR}|" /root/.vimrc \
  && rm -rf /tmp/vim-fast
 
 # 3) 编译安装 vim（对照 vim_compile.sh：huge + multibyte + python3 dynamic；顶替系统 vim）
