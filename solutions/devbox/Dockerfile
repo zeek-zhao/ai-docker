@@ -276,11 +276,16 @@ RUN curl -fsSL -o /out/ttyd \
       "${GH_PROXY}https://github.com/tsl0922/ttyd/releases/download/${TTYD_VERSION}/ttyd.x86_64" \
  && chmod +x /out/ttyd
 
-# 2) filebrowser 文件共享（auto = GitHub API 最新版）
+# 2) filebrowser 文件共享（auto = GitHub API 最新版；R20：runner 匿名 API 限流 403 时回退已知稳定版）
 RUN set -eux; \
     FBV="${FILEBROWSER_VERSION}"; \
     if [ "${FBV}" = "auto" ]; then \
-      FBV="$(curl -fsSL https://api.github.com/repos/filebrowser/filebrowser/releases/latest | grep -o '"tag_name": *"[^"]*"' | cut -d'"' -f4)"; \
+      FBV="$(curl -fsSL https://api.github.com/repos/filebrowser/filebrowser/releases/latest | grep -o '"tag_name": *"[^"]*"' | cut -d'"' -f4)" \
+      || FBV=""; \
+      if [ -z "${FBV}" ]; then \
+        echo "[filebrowser] GitHub API 探测失败（限流），回退 v2.63.23"; \
+        FBV="v2.63.23"; \
+      fi; \
     fi; \
     curl -fsSL -o /tmp/fb.tar.gz \
       "${GH_PROXY}https://github.com/filebrowser/filebrowser/releases/download/${FBV}/linux-amd64-filebrowser.tar.gz" \
