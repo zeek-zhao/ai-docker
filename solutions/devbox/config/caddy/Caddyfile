@@ -1,5 +1,5 @@
 # =============================================================================
-# Caddyfile —— zeek-ai-devbox 单端口统一反代（PLAN §6.1）
+# Caddyfile —— devbox 单端口统一反代（PLAN §6.1）
 # 文档编号：NT-001 · 版本：v1.0 · 2026-11-27 · 维护人：zeek.zhao
 # 路由：/_auth 登录 → forward_auth 统一会话 → / 首页 / /term / /file-share / /dsh / /magpie
 # 所有内部后端仅绑 127.0.0.1；WebSocket 透传（ttyd/DSH 依赖）

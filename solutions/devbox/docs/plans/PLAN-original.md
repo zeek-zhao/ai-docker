@@ -1,6 +1,6 @@
 # ZeekDevAI Container —— 全栈随身开发容器方案
 
-> 项目代号：**zeek-ai-devbox**
+> 项目代号：**devbox**
 > 本地工程 / 挂载目录：**`devbox/`**
 > 形态：多阶段分层构建的单容器开发环境，单对外端口统一反代，SSH + Web 终端 + 文件共享 + 导航首页开箱即用。
 
@@ -365,7 +365,7 @@ devbox/
 
 ```bash
 # 分层构建，可指定目标阶段便于单独调试
-docker build --target final -t zeek-ai-devbox:latest .
+docker build --target final -t devbox:latest .
 ```
 
 ### 10.2 启动（示例）
@@ -380,7 +380,7 @@ docker run -d \
   -v "$PWD/data:/home/dev/data" \
   -v "$PWD/secrets/key.txt:/secrets/key.txt:ro" \
   -v /var/run/docker.sock:/var/run/docker.sock:ro \
-  zeek-ai-devbox:latest
+  devbox:latest
 ```
 
 ### 10.3 访问

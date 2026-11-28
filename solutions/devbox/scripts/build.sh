@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # =============================================================================
-# build.sh —— zeek-ai-devbox 分层构建脚本
+# build.sh —— devbox 分层构建脚本
 # 文档编号：SC-001 · 版本：v1.0 · 2026-11-27 · 维护人：zeek.zhao
-# 用法: TARGET=final TAG=zeek-ai-devbox:latest ./scripts/build.sh [--no-cache ...]
+# 用法: TARGET=final TAG=devbox:latest ./scripts/build.sh [--no-cache ...]
 # =============================================================================
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 TARGET="${TARGET:-final}"          # 可选: base / toolchain-build / config / services / final
-TAG="${TAG:-zeek-ai-devbox:latest}"
+TAG="${TAG:-devbox:latest}"
 
 # ---- 企业网私有 CA 注入（Dockerfile base 阶段 1.5 步）-------------------------
 # 宿主机出网被企业 TLS 网关重签时，容器内缺企业根 CA 会导致 apt/git/下载全链握手失败。

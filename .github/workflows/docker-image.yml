@@ -1,4 +1,4 @@
-# .github/workflows/docker-image.yml —— zeek-ai-devbox CI 构建推送（CD-001 配套）
+# .github/workflows/docker-image.yml —— devbox CI 构建推送（CD-001 配套）
 # 文档编号：WF-001 · 版本：v1.0 · 2026-11-28 · 维护人：zeek.zhao
 # 触发：ai-devbox / main push 或手动；tag：Asia/Shanghai 时区 YYYYMMDD-HHmm + latest 指向最新
 name: docker-image

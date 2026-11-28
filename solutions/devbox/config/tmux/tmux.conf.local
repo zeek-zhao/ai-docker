@@ -1,0 +1,4 @@
+# .tmux.conf.local —— DevBox 用户覆写模板（TD-009/T13.5/D33）
+# oh-my-tmux 主配置 ~/.tmux.conf 保留 bind m 手动切换；本模板默认开启鼠标
+# （滚轮翻缓冲/点击切窗格/拖拽调边框；复制仍用 tmux copy 模式）
+set -g mouse on

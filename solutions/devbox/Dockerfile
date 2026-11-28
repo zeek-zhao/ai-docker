@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1
 # =============================================================================
-# Dockerfile —— zeek-ai-devbox 多阶段分层构建
+# Dockerfile —— devbox 多阶段分层构建
 # 文档编号：BD-001 · 版本：v1.0 · 2026-11-27 · 维护人：zeek.zhao
 # 阶段：base → toolchain-build → config → services → final
-# 构建：docker build --target final -t zeek-ai-devbox:latest .
+# 构建：docker build --target final -t devbox:latest .
 # 镜像源均由 ARG 集中管理，失效后一行覆盖切换（PLAN §12.5）
 # =============================================================================
 
@@ -40,6 +40,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libssl-dev libcurl4-openssl-dev zlib1g-dev libbz2-dev \
       libsqlite3-dev libxml2-dev libyaml-dev \
       zsh tmux bash-completion git age openssl jq \
+      silver-searcher fd-find bat ncdu btop httpie tldr git-delta \
       procps iproute2 \
  && locale-gen zh_CN.UTF-8 en_US.UTF-8 \
  && update-locale LANG=${DEFAULT_LANG} \
@@ -254,12 +255,21 @@ FROM base AS services
 
 ARG GH_PROXY=""
 ARG TTYD_VERSION=1.7.7
+ARG LAZYGIT_VERSION=v0.66.3
+ARG DUST_VERSION=v1.2.8
 ARG FILEBROWSER_VERSION=auto
 ARG TAILSCALE_VERSION=auto
 ARG CADDY_DOWNLOAD_URL="https://caddyserver.com/api/download?os=linux&arch=amd64"
 # 注：鉴权由独立 auth-gate + Caddy forward_auth 完成，无需额外 Caddy 模块
 
 RUN set -eux; mkdir -p /out /opt
+
+# 1.5) 增强工具（TD-009/T13.5/D32）：lazygit + dust（24.04 universe 无包，GitHub release ARG 化）
+RUN curl -fsSL "${GH_PROXY}https://github.com/jesseduffield/lazygit/releases/download/${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION#v}_Linux_x86_64.tar.gz" \
+      | tar -xz -C /out lazygit \
+ && curl -fsSL "${GH_PROXY}https://github.com/bootandy/dust/releases/download/${DUST_VERSION}/dust-${DUST_VERSION}-x86_64-unknown-linux-gnu.tar.gz" \
+      | tar -xz -C /out --strip-components=1 dust-${DUST_VERSION#v}-x86_64-unknown-linux-gnu/dust \
+ && chmod +x /out/lazygit /out/dust
 
 # 1) ttyd Web 终端（静态二进制）
 RUN curl -fsSL -o /out/ttyd \
@@ -352,6 +362,8 @@ COPY --from=config /usr/share/doc/fzf/examples/ /usr/share/doc/fzf/examples/
 COPY --from=vim-fast /root/.vimrc /etc/skel/.vimrc
 COPY --from=vim-fast /root/.vim/ /etc/skel/.vim/
 COPY config/tmux/tmuxs /usr/local/bin/tmuxs
+# TD-009/T13.5：鼠标默认开启（oh-my-tmux 用户覆写层；useradd cp -a skel 落家目录）
+COPY config/tmux/tmux.conf.local /etc/skel/.tmux.conf.local
 RUN fc-cache -f >/dev/null 2>&1 || true \
  && chmod +x /usr/local/bin/tmuxs
 
