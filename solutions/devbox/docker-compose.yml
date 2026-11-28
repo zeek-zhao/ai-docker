@@ -1,9 +1,12 @@
 # =============================================================================
-# docker-compose.yml —— zeek-ai-devbox 一键编排
-# 文档编号：BD-002 · 版本：v1.0 · 2026-11-27 · 维护人：zeek.zhao
+# docker-compose.yml —— DevBox 一键编排
+# 文档编号：BD-002 · 版本：v1.1 · 2026-11-28 · 维护人：zeek.zhao
 # 参数化：WEB_PORT / SSH_PORT / HOST_UID / HOST_GID / 各服务开关
-# 用法：WEB_PORT=8080 SSH_PORT=2222 docker compose up -d
+# 用法：WEB_PORT=8080 SSH_PORT=2222 docker compose -p devbox up -d
+# M12：项目名/容器名统一 devbox（DevBox）；Tailscale state 命名卷持久化（重建免重登录）
 # =============================================================================
+name: devbox
+
 services:
   devbox:
     build:
@@ -11,7 +14,8 @@ services:
       dockerfile: Dockerfile
       target: final
     image: zeek-ai-devbox:latest
-    container_name: zeek-devbox
+    container_name: devbox
+    hostname: devbox
     restart: unless-stopped
     ports:
       - "${WEB_PORT:-8080}:8080"
@@ -22,7 +26,9 @@ services:
       DEV_USER: "${DEV_USER:-dev}"
       DEV_PASSWORD: "${DEV_PASSWORD:-123}"        # 本地测试弱密码，公网必改（PLAN §7.1）
       ROOT_PASSWORD: "${ROOT_PASSWORD:-root}"     # 本地测试弱密码，公网必改
-      ENABLE_TAILSCALE: "${ENABLE_TAILSCALE:-0}"  # 1=启用用户态 tailscale
+      ENABLE_TAILSCALE: "${ENABLE_TAILSCALE:-0}"  # 1=启用用户态 tailscale（首启自动解密 auth key，见 volumes 注释）
+      TS_HOSTNAME: "${TS_HOSTNAME:-devbox}"       # Tailscale 固定机器名（与认证绑定，勿随意更改）
+      TS_AGE_KEY_FILE: "${TS_AGE_KEY_FILE:-/run/devbox/key.txt}"  # 解密 auth key 密文的 age 私钥路径
       ENABLE_DSH: "${ENABLE_DSH:-0}"              # 1=启用 /dsh 反代（dsh web 3081，镜像内置）
       ENABLE_MAGPIE: "${ENABLE_MAGPIE:-0}"        # 1=启用 /magpie 反代（面板 3430 + 网关 3425，镜像内置）
       DSH_PUBLIC_URL: "${DSH_PUBLIC_URL:-}"       # 可选：DSH 对外入口（默认 http://127.0.0.1:8080/dsh/，公网部署换成实际地址）
@@ -33,8 +39,10 @@ services:
     volumes:
       # 唯一数据挂载目录（PLAN §7.3）
       - ./data:/home/dev/data
+      # Tailscale state 持久化（M12/D29：命名卷，容器重建免重登录）
+      - devbox-tailscale:/var/lib/tailscale
       # ---- 可选挂载（按需取消注释）----
-      # age 私钥（只读；严禁提交仓库，严禁打入镜像）
+      # age 私钥（只读；严禁提交仓库，严禁打入镜像；Tailscale 首启自动登录依赖它解密密文）
       # - ./secrets/key.txt:/secrets/key.txt:ro
       # 加密发布包目录（manifest + *.age；restore.sh 依次探测 /secrets-pkg 等）
       # - ./secrets:/secrets-pkg:ro
@@ -44,3 +52,6 @@ services:
       # - ./run/dsh:/run/devbox/dsh:ro
       # Magpie 二进制注入点（ENABLE_MAGPIE=1 时需要）
       # - ./run/magpie:/run/devbox/magpie:ro
+
+volumes:
+  devbox-tailscale: {}   # Tailscale state（机器身份/节点密钥）持久化

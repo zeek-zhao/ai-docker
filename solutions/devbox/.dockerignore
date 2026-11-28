@@ -3,5 +3,6 @@ data/
 run/
 docs/
 *.age
+!secrets/*.age
 *.tar.age
 secrets/key.txt

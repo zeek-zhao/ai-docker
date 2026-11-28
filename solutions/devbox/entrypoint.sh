@@ -121,18 +121,46 @@ else
   log "警告：node 或 /opt/homepage/server.js 缺失，HomePage 未启动"
 fi
 
-# 5.6 Tailscale（用户态模式，可选开关，PLAN §6.4）
+# 5.6 Tailscale（用户态模式；M12/D29：凭证加密固化 + state 卷持久化免重登录）
+# 首启链路：state 缺失时从 age 密文解密 auth key（密文随镜像/挂载包分发，私钥 key.txt 仅本地/compose 挂载，
+# 公开镜像只含密文不含密钥）；一旦 /var/lib/tailscale/tailscaled.state 由 named volume 持久化，
+# 后续重启走免登录路径（机器身份已在 state 内，仅 up 保持连接）。
 if [ "$ENABLE_TAILSCALE" = "1" ]; then
-  tailscaled --tun=userspace-networking \
-    --statedir=/var/lib/tailscale --socket=/run/devbox/tailscaled.sock &
-  sleep 1
-  if [ -n "${TS_AUTHKEY:-}" ]; then
-    tailscale --socket=/run/devbox/tailscaled.sock up \
-      --authkey="${TS_AUTHKEY}" --hostname="${TS_HOSTNAME:-devbox}" || log "警告：tailscale up 失败"
+  mkdir -p /var/lib/tailscale
+  TS_SOCK=/run/devbox/tailscaled.sock
+  # D29 修正：state 存在性判断必须在 tailscaled 启动之前——daemon 启动 ~1s 内即写入空 state，
+  # 启动后再判断会恒为「已持久化」而跳过首启解密登录链（首启实机踩坑，见 R19）
+  TS_NEEDS_LOGIN=0
+  [ ! -f /var/lib/tailscale/tailscaled.state ] && TS_NEEDS_LOGIN=1
+  tailscaled --tun=userspace-networking --statedir=/var/lib/tailscale --socket="$TS_SOCK" &
+  sleep 2
+  TS_UP_ARGS="--hostname=${TS_HOSTNAME:-devbox}"
+  # D29：需求方确认开启出口节点广播（须在 Tailscale 管理台 approve 该设备后生效）
+  TS_UP_ARGS="$TS_UP_ARGS --advertise-exit-node"
+  if [ "$TS_NEEDS_LOGIN" = "1" ]; then
+    TS_AUTHKEY_RESOLVED="${TS_AUTHKEY:-}"
+    if [ -z "$TS_AUTHKEY_RESOLVED" ]; then
+      # 密文探测顺序：compose 挂载包 > 镜像内置密文；解密私钥：TS_AGE_KEY_FILE > /run/devbox/key.txt
+      for AGE_PKG in /secrets-pkg/tailscale-authkey.age /usr/local/share/devbox/secrets/tailscale-authkey.age; do
+        AGE_KEY_FILE="${TS_AGE_KEY_FILE:-/run/devbox/key.txt}"
+        if [ -f "$AGE_PKG" ] && [ -f "$AGE_KEY_FILE" ]; then
+          TS_AUTHKEY_RESOLVED="$(age -d -i "$AGE_KEY_FILE" "$AGE_PKG" 2>/dev/null)" && break
+        fi
+      done
+    fi
+    if [ -n "$TS_AUTHKEY_RESOLVED" ]; then
+      log "Tailscale 首启：使用解密 auth key 登录（hostname=${TS_HOSTNAME:-devbox}，advertise-exit-node）"
+      tailscale --socket="$TS_SOCK" up --authkey="$TS_AUTHKEY_RESOLVED" $TS_UP_ARGS \
+        || log "警告：tailscale up 失败（检查 key/网络，state 未写入下次仍走首启链路）"
+    else
+      log "提示：state 缺失且未提供 TS_AUTHKEY/可解密密文，tailscaled 已就绪待登录（免重登录需挂载 key.txt 或命名卷）"
+    fi
   else
-    log "提示：未提供 TS_AUTHKEY，tailscaled 已就绪待登录"
+    log "Tailscale：检测到持久化 state，免登录保持连接"
+    tailscale --socket="$TS_SOCK" up $TS_UP_ARGS || log "警告：tailscale up（保持连接）失败"
   fi
-  log "tailscale 已启动（用户态模式）"
+  unset TS_AUTHKEY TS_AUTHKEY_RESOLVED
+  log "tailscale 已启动（用户态模式；状态卷 /var/lib/tailscale）"
 else
   log "tailscale 未启用（ENABLE_TAILSCALE=0）"
 fi

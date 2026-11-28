@@ -47,7 +47,7 @@ jobs:
           target: final
           push: true
           tags: |
-            ghcr.io/zeek-zhao/ai-docker:${{ steps.ts.outputs.tag }}
-            ghcr.io/zeek-zhao/ai-docker:latest
+            ghcr.io/zeek-zhao/devbox:${{ steps.ts.outputs.tag }}
+            ghcr.io/zeek-zhao/devbox:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
