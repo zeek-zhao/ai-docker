@@ -148,6 +148,15 @@ start_dsh() {
     NODE_BIN_DIR="$(dirname "${DSH_BIN:-/nonexist}" 2>/dev/null || true)"
     if [ -n "$NODE_BIN_DIR" ] && [ -x "${NODE_BIN_DIR}/dsh" ]; then
       mkdir -p "$RUN_DIR/dsh"
+      # M10/D26：web 档案插件播种——dsh web 运行于 ~/.dsh/profiles/web（desktop 是 Electron 专属），
+      # 首启（web 档案不存在时）用镜像模板 /opt/devbox-skel/web-profile 原位迁移（mv 同文件系统零拷贝），
+      # 插件面板即出现完整插件列表；模板属 root，落家目录后统一交还 dev
+      if [ ! -f "/home/$DEV_USER/.dsh/profiles/web/package.json" ] && [ -d /opt/devbox-skel/web-profile ]; then
+        mkdir -p "/home/$DEV_USER/.dsh/profiles"
+        mv /opt/devbox-skel/web-profile "/home/$DEV_USER/.dsh/profiles/web" 2>/dev/null \
+          && chown -R "$DEV_USER:$DEV_USER" "/home/$DEV_USER/.dsh/profiles/web" \
+          || echo "[warn] web-profile 播种失败，dsh 将使用默认空档案"
+      fi
       DSH_PUBLIC_URL="${DSH_PUBLIC_URL:-http://127.0.0.1:8080/dsh/}"
       # D12 实证：dsh fence 在代理场景校验 X-Forwarded-Host 必须 ∈ trusted-host（Caddy 无法删/改 XFH 自动头）
       DSH_TRUSTED_HOST="$(printf '%s' "$DSH_PUBLIC_URL" | sed -E 's|^https?://([^/]+).*|\1|')"
@@ -156,8 +165,17 @@ start_dsh() {
           HOME="/home/$DEV_USER" PATH="${NODE_BIN_DIR}:/usr/local/bin:/usr/bin:/bin" DSH_PUBLIC_URL="$DSH_PUBLIC_URL" DSH_TRUSTED_HOST="$DSH_TRUSTED_HOST" \
           sh -c 'cd "$HOME" && exec dsh web --host 127.0.0.1 --port 3081 --no-open --public-url "$DSH_PUBLIC_URL" --trusted-host "$DSH_TRUSTED_HOST" >>/tmp/dsh-web.log 2>&1'
       ) &
-      sleep 3
-      DSH_URL="$(grep -o 'http://[^ ]*token=[A-Za-z0-9._-]*' /tmp/dsh-web.log 2>/dev/null | tail -1)"
+      # M10/D26 排障：22 插件档案使 dsh web 初始化 >3s，token URL 迟出；
+      # grep 空匹配在 set -o pipefail + set -e 下会退出整个 entrypoint（Exited(1) 根因）——
+      # 轮询等待（最多 30s）并对 grep 空匹配兜底（|| true）
+      DSH_URL=""
+      _dsh_i=0
+      while [ "$_dsh_i" -lt 30 ]; do
+        DSH_URL="$(grep -o 'http://[^ ]*token=[A-Za-z0-9._-]*' /tmp/dsh-web.log 2>/dev/null | tail -1 || true)"
+        [ -n "$DSH_URL" ] && break
+        sleep 1
+        _dsh_i=$((_dsh_i + 1))
+      done
       if [ -n "$DSH_URL" ]; then
         printf '%s\n' "$DSH_URL" > "$RUN_DIR/dsh/url.txt"
         log "DSH 登录链接（把入口前缀换成宿主映射后访问）：$DSH_URL"
