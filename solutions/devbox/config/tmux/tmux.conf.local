@@ -1,4 +1,9 @@
 # .tmux.conf.local —— DevBox 用户覆写模板（TD-009/T13.5/D33）
 # oh-my-tmux 主配置 ~/.tmux.conf 保留 bind m 手动切换；本模板默认开启鼠标
 # （滚轮翻缓冲/点击切窗格/拖拽调边框；复制仍用 tmux copy 模式）
+# M13：鼠标支持
 set -g mouse on
+# M15：OSC52 剪贴板透传——tmux 复制缓冲同步到终端/浏览器剪贴板（ttyd/xterm.js 支持 OSC52）
+set -g set-clipboard on
+# 浏览器终端复制提示：鼠标开启后拖选被 tmux 捕获，按住 Shift 拖选可直接用浏览器原生选区复制
+# （tmux 内复制：Ctrl+b [ 进入复制模式，选中文本经 OSC52 自动进剪贴板）

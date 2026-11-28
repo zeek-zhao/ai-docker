@@ -71,22 +71,28 @@ FROM base AS toolchain-build
 
 ARG GH_PROXY=""
 ARG NVM_REPO="https://github.com/nvm-sh/nvm.git"
-ARG NVM_VERSION=v0.40.3
+# M15/D38：auto = 构建时解析最新稳定 tag（git ls-remote，无 API 限流）；也可显式钉版本（如 v0.40.3）
+ARG NVM_VERSION=auto
 ARG NVM_NODEJS_ORG_MIRROR=https://npmmirror.com/mirrors/node
 ARG NPM_REGISTRY=https://registry.npmmirror.com
 ARG GO_VERSION=auto
 ARG GO_PROXY=https://goproxy.cn,direct
 # M12：DSH CLI 版本升级参数（升级方法见 docs/guides/upgrade.md；须在使用前声明）
-ARG DSH_NPM_SPEC="@deepseek-ai/dsh@0.2.2-rc.5"
+# M15/D38：auto = 构建时装最新（dist-tags.latest；插件兼容由 tools/plugin-version-match.sh 机制兜底）
+ARG DSH_NPM_SPEC="@deepseek-ai/dsh@latest"
 
 ENV NVM_DIR=/opt/nvm \
     NVM_NODEJS_ORG_MIRROR=${NVM_NODEJS_ORG_MIRROR} \
     GOBIN=/out/gobin \
     GOPATH=/out/gopath
 
-# 1) NVM + Node LTS + 前端全局工具（PLAN §4.2）
+# 1) NVM + Node LTS + 前端全局工具（PLAN §4.2；M15/D38：NVM_VERSION=auto 时解析最新稳定 tag）
 RUN mkdir -p "${NVM_DIR}" \
- && git clone --depth 1 --branch "${NVM_VERSION}" "${GH_PROXY}${NVM_REPO}" "${NVM_DIR}" \
+ && if [ "${NVM_VERSION}" = "auto" ]; then \
+      NVMTAG="$(git ls-remote --tags --refs "${GH_PROXY}https://github.com/nvm-sh/nvm.git" | awk -F/ '{print $NF}' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)"; \
+    else NVMTAG="${NVM_VERSION}"; fi \
+ && echo "[nvm] version=${NVMTAG}" \
+ && git clone --depth 1 --branch "${NVMTAG}" "${GH_PROXY}${NVM_REPO}" "${NVM_DIR}" \
  && . "${NVM_DIR}/nvm.sh" \
  && nvm install --lts \
  && nvm alias default 'lts/*' \
@@ -123,10 +129,19 @@ RUN cd /src/authgate \
  && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o /out/auth-gate . \
  && rm -rf /src/authgate
 
-# 5) Bun（magpie 插件 workspace 依赖管理；restore-notes §0/§2.1）
-ARG BUN_VERSION=v1.3.4
-RUN curl -fsSL -o /tmp/bun.zip \
-      "${GH_PROXY}https://github.com/oven-sh/bun/releases/download/bun-${BUN_VERSION}/bun-linux-x64.zip" \
+# 5) Bun（magpie 插件 workspace 依赖管理；restore-notes §0/§2.1；M15/D38：auto=release 最新）
+ARG BUN_VERSION=auto
+RUN --mount=type=secret,id=gh_token,target=/run/secrets/gh_token,required=false set -eux; \
+    if [ "${BUN_VERSION}" = "auto" ]; then \
+      if [ -r /run/secrets/gh_token ]; then \
+        BUNV="$(curl -fsSL -H "Authorization: Bearer $(cat /run/secrets/gh_token)" https://api.github.com/repos/oven-sh/bun/releases/latest | grep -o '"tag_name": *"[^"]*"' | cut -d'"' -f4)"; \
+      else \
+        BUNV="$(curl -fsSL https://api.github.com/repos/oven-sh/bun/releases/latest | grep -o '"tag_name": *"[^"]*"' | cut -d'"' -f4)"; \
+      fi; \
+    else BUNV="bun-${BUN_VERSION}"; fi \
+ && echo "[bun] tag=${BUNV}" \
+ && curl -fsSL -o /tmp/bun.zip \
+      "${GH_PROXY}https://github.com/oven-sh/bun/releases/download/${BUNV}/bun-linux-x64.zip" \
  && cd /tmp && unzip -q bun.zip && mv bun-linux-x64/bun /usr/local/bin/bun \
  && chmod +x /usr/local/bin/bun && rm -rf /tmp/bun.zip /tmp/bun-linux-x64 \
  && bun --version
@@ -256,50 +271,61 @@ RUN curl -fsSL -o /tmp/vim-doc.tar.gz "${VIM_DOC_URL}" \
 FROM base AS services
 
 ARG GH_PROXY=""
-ARG TTYD_VERSION=1.7.7
-ARG LAZYGIT_VERSION=v0.66.3
-ARG DUST_VERSION=v1.2.8
+# M15/D38：auto = 构建时解析最新 release（GHA runner 匿名 API 限流经 secret gh_token 解；本地构建匿名即可）
+ARG TTYD_VERSION=auto
+ARG LAZYGIT_VERSION=auto
+ARG DUST_VERSION=auto
 ARG FILEBROWSER_VERSION=auto
 ARG TAILSCALE_VERSION=auto
+ARG MAGPIE_VERSION=auto
 ARG CADDY_DOWNLOAD_URL="https://caddyserver.com/api/download?os=linux&arch=amd64"
 # 注：鉴权由独立 auth-gate + Caddy forward_auth 完成，无需额外 Caddy 模块
 
 RUN set -eux; mkdir -p /out /opt
 
-# 1.5) 增强工具（TD-009/T13.5/D32）：lazygit + dust（24.04 universe 无包，GitHub release ARG 化）
-RUN curl -fsSL "${GH_PROXY}https://github.com/jesseduffield/lazygit/releases/download/${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION#v}_Linux_x86_64.tar.gz" \
+# 0) 版本探测（M15/D38：全部 auto 汇总到 /out/versions.env；探测失败回退已知稳定版）
+RUN --mount=type=secret,id=gh_token,target=/run/secrets/gh_token,required=false set -eux; \
+    if [ -r /run/secrets/gh_token ]; then \
+      gh_latest() { curl -fsSL -H "Authorization: Bearer $(cat /run/secrets/gh_token)" "https://api.github.com/repos/$1/releases/latest" | grep -o '"tag_name": *"[^"]*"' | cut -d'"' -f4; }; \
+    else \
+      gh_latest() { curl -fsSL "https://api.github.com/repos/$1/releases/latest" | grep -o '"tag_name": *"[^"]*"' | cut -d'"' -f4; }; \
+    fi; \
+    TTYD_V="${TTYD_VERSION}";  [ "${TTYD_V}" = "auto" ]  && { TTYD_V="$(gh_latest tsl0922/ttyd)" || TTYD_V=""; }; [ -z "${TTYD_V}" ] && TTYD_V="1.7.7"; \
+    LG_V="${LAZYGIT_VERSION}"; [ "${LG_V}" = "auto" ]   && { LG_V="$(gh_latest jesseduffield/lazygit)" || LG_V=""; }; [ -z "${LG_V}" ] && LG_V="v0.66.3"; \
+    DUST_V="${DUST_VERSION}";  [ "${DUST_V}" = "auto" ] && { DUST_V="$(gh_latest bootandy/dust)" || DUST_V=""; }; [ -z "${DUST_V}" ] && DUST_V="v1.2.8"; \
+    FB_V="${FILEBROWSER_VERSION}"; [ "${FB_V}" = "auto" ] && { FB_V="$(gh_latest filebrowser/filebrowser)" || FB_V=""; }; [ -z "${FB_V}" ] && { echo "[filebrowser] 探测失败，回退 v2.63.23"; FB_V="v2.63.23"; }; \
+    MP_V="${MAGPIE_VERSION}";  [ "${MP_V}" = "auto" ]   && { MP_V="$(gh_latest yetone/magpie)" || MP_V=""; }; [ -z "${MP_V}" ] && MP_V="v0.1.4984"; \
+    printf 'TTYD_V=%s\nLG_V=%s\nDUST_V=%s\nFB_V=%s\nMP_V=%s\n' "${TTYD_V}" "${LG_V}" "${DUST_V}" "${FB_V}" "${MP_V}" > /out/versions.env; \
+    cat /out/versions.env
+
+# 1.5) 增强工具（TD-009/T13.5/D32）：lazygit + dust（版本见 /out/versions.env）
+RUN . /out/versions.env \
+ && curl -fsSL "${GH_PROXY}https://github.com/jesseduffield/lazygit/releases/download/${LG_V}/lazygit_${LG_V#v}_Linux_x86_64.tar.gz" \
       | tar -xz -C /out lazygit \
- && curl -fsSL "${GH_PROXY}https://github.com/bootandy/dust/releases/download/${DUST_VERSION}/dust-${DUST_VERSION}-x86_64-unknown-linux-gnu.tar.gz" \
-      | tar -xz -C /out --strip-components=1 dust-${DUST_VERSION}-x86_64-unknown-linux-gnu/dust \
+ && curl -fsSL "${GH_PROXY}https://github.com/bootandy/dust/releases/download/${DUST_V}/dust-${DUST_V}-x86_64-unknown-linux-gnu.tar.gz" \
+      | tar -xz -C /out --strip-components=1 dust-${DUST_V}-x86_64-unknown-linux-gnu/dust \
  && chmod +x /out/lazygit /out/dust
 
 # 1) ttyd Web 终端（静态二进制）
-RUN curl -fsSL -o /out/ttyd \
-      "${GH_PROXY}https://github.com/tsl0922/ttyd/releases/download/${TTYD_VERSION}/ttyd.x86_64" \
+RUN . /out/versions.env \
+ && curl -fsSL -o /out/ttyd \
+      "${GH_PROXY}https://github.com/tsl0922/ttyd/releases/download/${TTYD_V}/ttyd.x86_64" \
  && chmod +x /out/ttyd
 
-# 2) filebrowser 文件共享（auto = GitHub API 最新版；R20：runner 匿名 API 限流 403 时回退已知稳定版）
-RUN set -eux; \
-    FBV="${FILEBROWSER_VERSION}"; \
-    if [ "${FBV}" = "auto" ]; then \
-      FBV="$(curl -fsSL https://api.github.com/repos/filebrowser/filebrowser/releases/latest | grep -o '"tag_name": *"[^"]*"' | cut -d'"' -f4)" \
-      || FBV=""; \
-      if [ -z "${FBV}" ]; then \
-        echo "[filebrowser] GitHub API 探测失败（限流），回退 v2.63.23"; \
-        FBV="v2.63.23"; \
-      fi; \
-    fi; \
-    curl -fsSL -o /tmp/fb.tar.gz \
-      "${GH_PROXY}https://github.com/filebrowser/filebrowser/releases/download/${FBV}/linux-amd64-filebrowser.tar.gz" \
+# 2) filebrowser 文件共享（版本见 /out/versions.env）
+RUN . /out/versions.env \
+ && curl -fsSL -o /tmp/fb.tar.gz \
+      "${GH_PROXY}https://github.com/filebrowser/filebrowser/releases/download/${FB_V}/linux-amd64-filebrowser.tar.gz" \
  && tar -C /out -xzf /tmp/fb.tar.gz filebrowser && rm -f /tmp/fb.tar.gz
 
 # 3) Caddy（caddyserver.com 官方在线构建，标准模块）
 RUN curl -fsSL -o /out/caddy "${CADDY_DOWNLOAD_URL}" && chmod +x /out/caddy
 
-# 3b) Magpie CLI（订阅池化网关，TD-003/D11：yetone/magpie release 单二进制，headless web+gateway 全功能）
-ARG MAGPIE_VERSION=v0.1.4984
-RUN curl -fsSL -o /out/magpie \
-      "${GH_PROXY}https://github.com/yetone/magpie/releases/download/${MAGPIE_VERSION}/magpie-cli-linux-amd64" \
+# 3b) Magpie CLI（订阅池化网关，TD-003/D11：yetone/magpie release 单二进制；版本见 /out/versions.env。
+#     M15：官方无 Docker 镜像（ghcr.io/yetone/magpie 404 实测），维持 release 下载+auto 最新）
+RUN . /out/versions.env \
+ && curl -fsSL -o /out/magpie \
+      "${GH_PROXY}https://github.com/yetone/magpie/releases/download/${MP_V}/magpie-cli-linux-amd64" \
  && chmod +x /out/magpie
 
 # 4) HomePage —— 已移除发布包下载（gethomepage v1→v2 各 release 均不发布二进制资产，D5 变更）；

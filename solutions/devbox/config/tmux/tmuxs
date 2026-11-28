@@ -1,41 +1,68 @@
 #!/usr/bin/env bash
-# tmuxs —— devbox 版 tmux 工作台（源自宿主机 tmuxs.sh；D19 容器化：去安装/交互段，窗口数参数化）
-# 用法：tmuxs [窗口数]   （默认 5；每窗口 2x2 四窗格；会话名 work）
-winCnt="${1:-5}"
+# tmuxs —— devbox 版 tmux 工作台（D19 容器化 + M15 参数化/kill 子命令）
+# 用法：
+#   tmuxs                 默认 5 窗（每窗 2x2 四窗格），会话名 work；已存在则显示 attach 提示
+#   tmuxs [窗口数]         自定义窗口数，如 tmuxs 6
+#   tmuxs [窗口数] [会话名] 自定义窗口数与会话名，如 tmuxs 4 mytask
+#   tmuxs kill [会话名]    关闭指定会话（缺省 work）；tmuxs kill all 关闭全部
+set -eu
 
 cmd=$(command -v tmux) || { echo "You need to install tmux."; exit 1; }
-session=work
+
+# ---- 子命令：kill ----
+if [ "${1:-}" = "kill" ]; then
+  target="${2:-work}"
+  if [ "$target" = "all" ]; then
+    $cmd list-sessions -F '#S' 2>/dev/null | while IFS= read -r s; do $cmd kill-session -t "$s"; done
+    echo "已关闭全部会话"
+  else
+    $cmd kill-session -t "$target" 2>/dev/null && echo "会话 $target 已关闭" || echo "会话 $target 不存在"
+  fi
+  exit 0
+fi
+
+# ---- 参数：[窗口数] [会话名] ----
+winCnt="${1:-5}"
+session="${2:-work}"
+case "$winCnt" in *[!0-9]*) echo "窗口数须为数字：tmuxs [窗口数] [会话名]"; exit 1;; esac
+[ "$winCnt" -ge 1 ] || { echo "窗口数至少为 1"; exit 1; }
 
 # 确保 oh-my-tmux 默认 shell 为 zsh（幂等）
 if [ -f "$HOME/.tmux.conf" ] && ! grep -q "set -g default-command /usr/bin/zsh" "$HOME/.tmux.conf"; then
   printf "\nset -g default-command /usr/bin/zsh # 默认shell\n" >> "$HOME/.tmux.conf"
 fi
 
-$cmd has -t "$session" 2>/dev/null
-
-if [ $? != 0 ]; then
-  # 新会话，首窗口 window0
-  $cmd new -s "$session" -d -n window0
-
-  for ((i = 0; i < winCnt; i++)); do
-    winName=window$i
-
-    if [ "$winName" != window0 ]; then
-      # 新建窗口
-      $cmd neww -n "$winName" -t "$session" -d
-      $cmd selectw -t "$session:$winName"
-    fi
-
-    # 田字格分割：垂直 50% → 右半水平 50% → 选左上 → 左半水平 50%（-t 须完整 session:window 语法，裸窗口名会被解析成 pane id）
-    $cmd splitw -v -l "50%" -t "$session:$winName"
-    $cmd splitw -h -l "50%" -t "$session:$winName"
-    $cmd selectp -t 0
-    $cmd splitw -h -l "50%" -t "$session:$winName"
-    $cmd selectp -t 0
-  done
-
-  # 选回首窗口
-  $cmd selectw -t "$session:window0"
+# ---- 已存在 → attach 提示 ----
+if $cmd has -t "$session" 2>/dev/null; then
+  echo "会话 $session 已存在（$( $cmd list-windows -t "$session" 2>/dev/null | wc -l ) 窗）。"
+  echo "  接入：tmux attach -t $session   （浏览器终端内：输入后回车）"
+  echo "  重建：tmuxs kill $session && tmuxs $winCnt $session"
+  exec $cmd attach -t "$session"
 fi
 
-exec $cmd att -t "$session"
+# ---- 新建 ----
+$cmd new -s "$session" -d -n window0
+
+i=0
+while [ "$i" -lt "$winCnt" ]; do
+  winName=window$i
+
+  if [ "$winName" != window0 ]; then
+    $cmd neww -n "$winName" -t "$session" -d
+    $cmd selectw -t "$session:$winName"
+  fi
+
+  # 田字格分割：垂直 50% → 右半水平 50% → 选左上 → 左半水平 50%（-t 须完整 session:window 语法，裸窗口名会被解析成 pane id）
+  $cmd splitw -v -l "50%" -t "$session:$winName"
+  $cmd splitw -h -l "50%" -t "$session:$winName"
+  $cmd selectp -t 0
+  $cmd splitw -h -l "50%" -t "$session:$winName"
+  $cmd selectp -t 0
+
+  i=$((i + 1))
+done
+
+# 选回首窗口并接入
+$cmd selectw -t "$session:window0"
+echo "会话 $session 已创建（$winCnt 窗 × 4 窗格）。接入：tmux attach -t $session"
+exec $cmd attach -t "$session"

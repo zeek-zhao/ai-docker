@@ -1,8 +1,10 @@
 # =============================================================================
 # docker-compose.yml —— DevBox 一键编排
-# 文档编号：BD-002 · 版本：v1.1 · 2026-11-28 · 维护人：zeek.zhao
-# 参数化：WEB_PORT / SSH_PORT / HOST_UID / HOST_GID / 各服务开关
-# 用法：WEB_PORT=8080 SSH_PORT=2222 docker compose -p devbox up -d
+# 文档编号：BD-002 · 版本：v1.2 · 2026-11-29 · 维护人：zeek.zhao
+# 集中配置（M15）：所有参数从同目录 .env 文件读取（docker compose 原生机制）——
+#   cp .env.example .env && vi .env   # 编辑一次，之后 docker compose -p devbox up -d 即可
+#   （环境变量前缀传参仍兼容，优先级高于 .env）
+# 用法：docker compose -p devbox up -d
 # M12：项目名/容器名统一 devbox（DevBox）；Tailscale state 命名卷持久化（重建免重登录）
 # =============================================================================
 name: devbox
@@ -24,8 +26,10 @@ services:
       HOST_UID: "${HOST_UID:-1000}"
       HOST_GID: "${HOST_GID:-1000}"
       DEV_USER: "${DEV_USER:-dev}"
-      DEV_PASSWORD: "${DEV_PASSWORD:-123}"        # 本地测试弱密码，公网必改（PLAN §7.1）
-      ROOT_PASSWORD: "${ROOT_PASSWORD:-root}"     # 本地测试弱密码，公网必改
+      DEV_PASSWORD: "${DEV_PASSWORD:-}"          # 留空则启动时自动生成 24 位随机密码（D30），见容器内 /run/devbox/SERVICES.md
+      ROOT_PASSWORD: "${ROOT_PASSWORD:-}"        # 留空同上（root 随机生成）
+      PUBLIC_URL: "${PUBLIC_URL:-}"              # 对外访问地址（如 http://192.168.1.10:8080），用于 DSH token 链接生成；留空自动探测容器 IP
+      TZ: "${TZ:-Asia/Shanghai}"
       ENABLE_TAILSCALE: "${ENABLE_TAILSCALE:-0}"  # 1=启用用户态 tailscale（首启自动解密 auth key，见 volumes 注释）
       TS_HOSTNAME: "${TS_HOSTNAME:-devbox}"       # Tailscale 固定机器名（与认证绑定，勿随意更改）
       TS_AGE_KEY_FILE: "${TS_AGE_KEY_FILE:-/run/devbox/key.txt}"  # 解密 auth key 密文的 age 私钥路径
@@ -34,7 +38,6 @@ services:
       DSH_PUBLIC_URL: "${DSH_PUBLIC_URL:-}"       # 可选：DSH 对外入口（默认 http://127.0.0.1:8080/dsh/，公网部署换成实际地址）
       MAGPIE_WEB_KEY: "${MAGPIE_WEB_KEY:-devbox-magpie-key}"   # Magpie 面板访问 key（16+ 字符）
       MAGPIE_WEB_URL: "${MAGPIE_WEB_URL:-}"       # 可选：Magpie 对外入口（默认 http://127.0.0.1:8080/magpie/）
-      TZ: Asia/Shanghai
       LANG: zh_CN.UTF-8
     volumes:
       # 唯一数据挂载目录（PLAN §7.3）

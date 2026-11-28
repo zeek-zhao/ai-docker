@@ -46,6 +46,9 @@ jobs:
           file: solutions/devbox/Dockerfile
           target: final
           push: true
+          # M15/D38：GitHub API 探测走 GHA token（绕开 runner 匿名限流），auto 版本全部取最新
+          secrets: |
+            gh_token=${{ secrets.GITHUB_TOKEN }}
           tags: |
             ghcr.io/zeek-zhao/devbox:${{ steps.ts.outputs.tag }}
             ghcr.io/zeek-zhao/devbox:latest

@@ -249,6 +249,16 @@ start_dsh() {
           && chown -R "$DEV_USER:$DEV_USER" "/home/$DEV_USER/.dsh/profiles/web" \
           || echo "[warn] web-profile 播种失败，dsh 将使用默认空档案"
       fi
+      # M15：对外地址解析链（用户报告 url.txt 落 127.0.0.1）——
+      # DSH_PUBLIC_URL 显式 > PUBLIC_URL（.env 集中配置，含宿主地址）> 容器 IP 探测 > 127.0.0.1 兜底；
+      # 容器无法感知宿主端口映射，精确对外地址请用 PUBLIC_URL 配置
+      if [ -z "${DSH_PUBLIC_URL:-}" ] && [ -n "${PUBLIC_URL:-}" ]; then
+        DSH_PUBLIC_URL="${PUBLIC_URL%/}/dsh/"
+      fi
+      if [ -z "${DSH_PUBLIC_URL:-}" ]; then
+        _CIP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+        [ -n "$_CIP" ] && DSH_PUBLIC_URL="http://${_CIP}:8080/dsh/"
+      fi
       DSH_PUBLIC_URL="${DSH_PUBLIC_URL:-http://127.0.0.1:8080/dsh/}"
       # D12 实证：dsh fence 在代理场景校验 X-Forwarded-Host 必须 ∈ trusted-host（Caddy 无法删/改 XFH 自动头）
       DSH_TRUSTED_HOST="$(printf '%s' "$DSH_PUBLIC_URL" | sed -E 's|^https?://([^/]+).*|\1|')"
@@ -290,10 +300,12 @@ start_magpie() {
     if command -v magpie >/dev/null 2>&1; then
       mkdir -p "$RUN_DIR/magpie"
       MAGPIE_WEB_URL="${MAGPIE_WEB_URL:-http://127.0.0.1:8080/magpie/}"
+      # M15：去掉 --gateway——gateway 模式会禁用面板的 Agents/Sessions/Library（用户「找不到 agent」根因）；
+      # 实测无 --gateway 时网关 3425 照常监听，DSH 供给链路（M11）不受影响
       runuser -u "$DEV_USER" -- env \
         HOME="/home/$DEV_USER" MAGPIE_WEB_KEY="${MAGPIE_WEB_KEY:-devbox-magpie-key}" MAGPIE_WEB_URL="$MAGPIE_WEB_URL" \
         MAGPIE_TRUST_PROXY=1 \
-        sh -c 'cd "$HOME" && exec magpie web --addr 127.0.0.1:3430 --no-open --gateway >/tmp/magpie-web.log 2>&1' &
+        sh -c 'cd "$HOME" && exec magpie web --addr 127.0.0.1:3430 --no-open >/tmp/magpie-web.log 2>&1' &
       touch "$RUN_DIR/magpie/enabled"
       log "Magpie 已启动（面板 127.0.0.1:3430 + 网关 3425；入口 /magpie/?k= 和 MAGPIE_WEB_KEY，默认 devbox-magpie-key）"
     else
