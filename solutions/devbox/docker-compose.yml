@@ -13,7 +13,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: final
-    image: devbox:latest
+    image: ${DEVBOX_IMAGE:-ghcr.io/zeek-zhao/devbox:latest}
     container_name: devbox
     hostname: devbox
     restart: unless-stopped
