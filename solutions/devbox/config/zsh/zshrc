@@ -1,11 +1,17 @@
-# /etc/skel/.zshrc —— devbox 默认 zsh 配置（PLAN §5.1）
+# /etc/skel/.zshrc —— devbox 默认 zsh 配置（PLAN §5.1；D19 调整：ys 主题 + 完整插件集）
 export ZSH="/usr/share/oh-my-zsh"
-ZSH_THEME="powerlevel10k/powerlevel10k"
+ZSH_THEME="ys"
 
-# 插件清单（PLAN §5.1，可增删；zsh-syntax-highlighting 约定放最后）
-plugins=(git z zsh-autosuggestions zsh-syntax-highlighting sudo command-not-found fzf)
+# 插件清单（需求方定版；zsh-syntax-highlighting 约定放最后）
+plugins=(git timer docker z colored-man-pages sudo extract history fzf zsh-autosuggestions zsh-syntax-highlighting)
+
+# 禁用 omz 自动更新（镜像内环境，手动更新）
+zstyle ':omz:update' mode 'disabled'
 
 source $ZSH/oh-my-zsh.sh
+
+# 常用别名
+alias ll="ls -lahF --color --time-style=long-iso"
 
 # NVM / Node（镜像内预装 LTS，PLAN §4.2）
 export NVM_DIR="/opt/nvm"
@@ -20,8 +26,13 @@ export PATH="$PATH:/usr/local/go/bin:$GOPATH/bin"
 export RIPGREP_CONFIG_PATH="$HOME/.ripgreprc"
 [ -f "$RIPGREP_CONFIG_PATH" ] || echo "--glob='!.git'" > "$RIPGREP_CONFIG_PATH"
 
-# powerlevel10k 即时提示与主题配置
-if [ -n "${ZSH_VERSION:-}" ]; then
-  autoload -Uz promptinit 2>/dev/null || true
+# AOSP repo 工具：源走清华镜像（PLAN §5.1）
+export REPO_URL='https://mirrors.tuna.tsinghua.edu.cn/git/git-repo'
+
+# node 系工具（node/npm/pnpm/dsh）信任系统 CA 信任库（含可选企业 CA 注入；R10/D20）
+export NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
+
+# 进入终端即呈现 tmux work 会话（tmuxs，默认 5 窗口；防嵌套/非交互，DEVBOX_NO_TMUX=1 可禁）
+if [ -z "$TMUX" ] && [ -n "$PS1" ] && [ -t 0 ] && [ "${DEVBOX_NO_TMUX:-0}" != "1" ]; then
+  /usr/local/bin/tmuxs
 fi
-[[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh

@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# tmuxs —— devbox 版 tmux 工作台（源自宿主机 tmuxs.sh；D19 容器化：去安装/交互段，窗口数参数化）
+# 用法：tmuxs [窗口数]   （默认 5；每窗口 2x2 四窗格；会话名 work）
+winCnt="${1:-5}"
+
+cmd=$(command -v tmux) || { echo "You need to install tmux."; exit 1; }
+session=work
+
+# 确保 oh-my-tmux 默认 shell 为 zsh（幂等）
+if [ -f "$HOME/.tmux.conf" ] && ! grep -q "set -g default-command /usr/bin/zsh" "$HOME/.tmux.conf"; then
+  printf "\nset -g default-command /usr/bin/zsh # 默认shell\n" >> "$HOME/.tmux.conf"
+fi
+
+$cmd has -t "$session" 2>/dev/null
+
+if [ $? != 0 ]; then
+  # 新会话，首窗口 window0
+  $cmd new -s "$session" -d -n window0
+
+  for ((i = 0; i < winCnt; i++)); do
+    winName=window$i
+
+    if [ "$winName" != window0 ]; then
+      # 新建窗口
+      $cmd neww -n "$winName" -t "$session" -d
+      $cmd selectw -t "$session:$winName"
+    fi
+
+    # 田字格分割：垂直 50% → 右半水平 50% → 选左上 → 左半水平 50%
+    $cmd splitw -v -p 50 -t "$winName"
+    $cmd splitw -h -p 50 -t "$winName"
+    $cmd selectp -t 0
+    $cmd splitw -h -p 50 -t "$winName"
+    $cmd selectp -t 0
+  done
+
+  # 选回首窗口
+  $cmd selectw -t "$session:window0"
+fi
+
+exec $cmd att -t "$session"

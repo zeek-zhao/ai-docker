@@ -23,6 +23,14 @@
 			reverse_proxy 127.0.0.1:9090
 		}
 
+		# Magpie 网关 OpenAI 兼容 API 直通（M8/D21：免网页登录反代 3425，认证交 magpie 自身；
+		# 需置于 forward_auth 之前，否则 /v1/* 被会话鉴权 302 成登录页 HTML——外部客户端拿到页面而非 API 响应）
+		handle /v1/* {
+			reverse_proxy 127.0.0.1:3425 {
+				header_up Host 127.0.0.1:3425
+			}
+		}
+
 		# 统一登录态会话鉴权：未登录一律先跳登录页（PLAN §6.1）
 		# 注意：禁止 copy_headers Cookie——auth-gate /verify 响应无 Cookie 头，该指令会把发往上游的
 		# Cookie 头清空，导致 dsh/magpie 收不到自身会话 Cookie 而 401（D15 实证）；客户端 Cookie

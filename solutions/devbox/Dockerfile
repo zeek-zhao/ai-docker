@@ -109,6 +109,7 @@ RUN go env -w GOPROXY="${GO_PROXY}" \
  && go install honnef.co/go/tools/cmd/staticcheck@latest \
  && go install github.com/go-delve/delve/cmd/dlv@latest \
  && go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest \
+ && go install github.com/gokcehan/lf@latest \
  && rm -rf /out/gopath/pkg
 
 # 4) auth-gate 会话鉴权微服务（R4 方案，源码在 config/caddy/authgate）
@@ -142,35 +143,25 @@ RUN cd /out/skel-magpie/plugins \
  && bun install 2>&1 | tail -3
 
 # -----------------------------------------------------------------------------
-# Stage 2: config —— 交互环境：Oh My Zsh / powerlevel10k / LazyVim / tmux / 字体
+# Stage 2: config —— 交互环境：Oh My Zsh(ys) / vim-fast / LazyVim / tmux / tmuxs
 # -----------------------------------------------------------------------------
 FROM base AS config
 
 ARG GH_PROXY=""
 ARG OMZ_REPO="https://github.com/ohmyzsh/ohmyzsh.git"
-ARG P10K_REPO="https://github.com/romkatv/powerlevel10k.git"
 ARG ZSH_AUTOSUGGESTIONS_REPO="https://github.com/zsh-users/zsh-autosuggestions.git"
 ARG ZSH_SYNTAX_HIGHLIGHTING_REPO="https://github.com/zsh-users/zsh-syntax-highlighting.git"
 ARG OH_MY_TMUX_REPO="https://github.com/gpakosz/.tmux.git"
 ARG LAZYVIM_STARTER_REPO="https://github.com/LazyVim/starter.git"
 ARG LAZYVIM_STARTER_BRANCH=main
 
-# 1) Oh My Zsh（系统级安装至 /usr/share/oh-my-zsh）+ 插件 + powerlevel10k（PLAN §5.1）
+# 1) Oh My Zsh（系统级安装至 /usr/share/oh-my-zsh）+ 插件（PLAN §5.1；D19：主题改 ys，p10k 移除）
 RUN git clone --depth 1 "${GH_PROXY}${OMZ_REPO}" /usr/share/oh-my-zsh \
  && git clone --depth 1 "${GH_PROXY}${ZSH_AUTOSUGGESTIONS_REPO}" /usr/share/oh-my-zsh/custom/plugins/zsh-autosuggestions \
  && git clone --depth 1 "${GH_PROXY}${ZSH_SYNTAX_HIGHLIGHTING_REPO}" /usr/share/oh-my-zsh/custom/plugins/zsh-syntax-highlighting \
- && git clone --depth 1 "${GH_PROXY}${P10K_REPO}" /usr/share/oh-my-zsh/custom/themes/powerlevel10k \
- && rm -rf /usr/share/oh-my-zsh/.git /usr/share/oh-my-zsh/custom/plugins/*/.git /usr/share/oh-my-zsh/custom/themes/powerlevel10k/.git
+ && rm -rf /usr/share/oh-my-zsh/.git /usr/share/oh-my-zsh/custom/plugins/*/.git
 
-# 2) powerlevel10k 配套 MesloLGS NF 字体（PLAN §5.1；sh 兼容写法，勿用 bash 专属扩展）
-RUN mkdir -p /usr/local/share/fonts \
- && curl -fsSL -o "/usr/local/share/fonts/MesloLGS NF Regular.ttf"     "${GH_PROXY}https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf" \
- && curl -fsSL -o "/usr/local/share/fonts/MesloLGS NF Bold.ttf"        "${GH_PROXY}https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold.ttf" \
- && curl -fsSL -o "/usr/local/share/fonts/MesloLGS NF Italic.ttf"      "${GH_PROXY}https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Italic.ttf" \
- && curl -fsSL -o "/usr/local/share/fonts/MesloLGS NF Bold Italic.ttf" "${GH_PROXY}https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold%20Italic.ttf" \
- && fc-cache -f >/dev/null
-
-# 3) zsh/tmux 用户骨架（首次建用户即生效；.p10k.zsh 由 p10k configure 生成）
+# 2) zsh/tmux 用户骨架（首次建用户即生效；tmuxs 工作台脚本见 config/tmux/tmuxs）
 COPY config/zsh/zshrc /etc/skel/.zshrc
 RUN git clone --depth 1 "${GH_PROXY}${OH_MY_TMUX_REPO}" /tmp/oh-my-tmux \
  && cp /tmp/oh-my-tmux/.tmux.conf /etc/skel/.tmux.conf \
@@ -191,6 +182,50 @@ RUN git clone --depth 1 --branch "${LAZYVIM_STARTER_BRANCH}" "${GH_PROXY}${LAZYV
 
 # 5) tmux 插件项写入 .tmux.conf.local 尾部（resurrect/continuum）
 RUN printf '\n# devbox: 会话保存/恢复插件（PLAN §5.3）\nset -g @plugin "tmux-plugins/tmux-resurrect"\nset -g @plugin "tmux-plugins/tmux-continuum"\nset -g @continuum-restore "on"\n' >> /etc/skel/.tmux.conf.local
+
+# -----------------------------------------------------------------------------
+# Stage 2b: vim-fast —— vim 8/9 编译版 + websimple 配置 + 中文文档（M8/D20，风格参照 vim_compile.sh/self.sh/doc_zh.sh）
+# -----------------------------------------------------------------------------
+FROM base AS vim-fast
+
+ARG GH_PROXY=""
+ARG VIM_FAST_REPO="https://gitee.com/mirrorvim/vim-fast.git"
+ARG VIM_MIRROR_REPO="https://gitee.com/mirrors/vim.git"
+ARG VIM_DOC_URL="https://gitee.com/mirrorvim/vim-fast/releases/download/v1.0.2/doc.tar.gz"
+ARG VIM_NAME=zeek.zhao
+ARG VIM_EMAIL="zeek.zhao/zeek.zhao@devops.com"
+
+# 1) 编译依赖（对照 vim-fast shell/vim_compile.sh：python3-dev + ncurses；gcc 在 base 已具备）
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends python3-dev libncurses5-dev libncursesw5-dev wget ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
+# 2) 拉取 vim-fast 并按 websimple.sh 模式落配置（vimrc-no-plug → 身份化，sed 对照 shell/self.sh；CocInstall 段不启用）
+RUN git clone --depth 1 "${VIM_FAST_REPO}" /tmp/vim-fast \
+ && cp /tmp/vim-fast/vimrc-no-plug /root/.vimrc \
+ && sed -i "s/chenxuan[^5]/${VIM_NAME}'/g" /root/.vimrc \
+ && sed -i "s/ chenxuan/ ${VIM_NAME}/g" /root/.vimrc \
+ && sed -i "s/1607772321@qq.com/${VIM_EMAIL}/g" /root/.vimrc \
+ && rm -rf /tmp/vim-fast
+
+# 3) 编译安装 vim（对照 vim_compile.sh：huge + multibyte + python3 dynamic；顶替系统 vim）
+RUN git clone --depth 1 "${VIM_MIRROR_REPO}" /tmp/vim-src \
+ && cd /tmp/vim-src \
+ && ./configure --with-features=huge --enable-multibyte \
+      --enable-pythoninterp=dynamic --enable-python3interp=dynamic \
+      --enable-gui=auto --enable-cscope --enable-largefile --enable-fail-if-missing \
+      --prefix=/usr \
+ && make -j"$(nproc)" \
+ && make install \
+ && rm -rf /tmp/vim-src \
+ && vim --version | head -2
+
+# 4) 中文帮助文档（doc_zh.sh v1.0.2；tar 内为 vimcdoc/doc 结构）
+RUN curl -fsSL -o /tmp/vim-doc.tar.gz "${VIM_DOC_URL}" \
+ && tar -C /tmp -xzf /tmp/vim-doc.tar.gz \
+ && mkdir -p /root/.vim \
+ && mv /tmp/vimcdoc/doc /root/.vim/doc \
+ && rm -rf /tmp/vim-doc.tar.gz /tmp/vimcdoc
 
 # -----------------------------------------------------------------------------
 # Stage 3: services —— 服务二进制：ttyd / filebrowser / Caddy / HomePage / Tailscale
@@ -245,6 +280,18 @@ RUN set -eux; \
  && cp "/tmp/tailscale_${TSV}_amd64/tailscale" "/tmp/tailscale_${TSV}_amd64/tailscaled" /out/ \
  && rm -rf /tmp/ts.tgz "/tmp/tailscale_${TSV}_amd64"
 
+# 6) 开发辅助工具（M8/D22：yq / hadolint / repo launcher 清华镜像）
+RUN curl -fsSL -o /out/yq \
+      "${GH_PROXY}https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64" \
+ && curl -fsSL -o /out/hadolint \
+      "${GH_PROXY}https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64" \
+ && curl -fsSL -o /out/repo \
+      "https://storage.googleapis.com/git-repo-downloads/repo" \
+ && chmod +x /out/yq /out/hadolint /out/repo \
+ && /out/yq --version \
+ && /out/hadolint --version \
+ && head -1 /out/repo | grep -q python
+
 # -----------------------------------------------------------------------------
 # Stage 3b: homepage-src —— HomePage 成品直取官方镜像（D5：v2 起无二进制资产，改镜像提取）
 # -----------------------------------------------------------------------------
@@ -259,7 +306,8 @@ ARG DEFAULT_LANG=zh_CN.UTF-8
 ENV LANG=${DEFAULT_LANG} \
     TZ=Asia/Shanghai \
     NVM_DIR=/opt/nvm \
-    GOPATH=/home/dev/go
+    GOPATH=/home/dev/go \
+    NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
 
 # 1) 语言工具链成品（Node/NVM 全局包随 NVM 目录进入；Go 工具链本体保留供日常开发）
 COPY --from=toolchain-build /opt/nvm /opt/nvm
@@ -274,11 +322,14 @@ RUN chmod +x /usr/local/bin/* 2>/dev/null || true \
  && ln -sf /usr/local/go/bin/go /usr/local/bin/go \
  && ln -sf /usr/local/go/bin/gofmt /usr/local/bin/gofmt
 
-# 2) 交互环境成品
+# 2) 交互环境成品（M8/D19：Meslo 字体段已随 p10k 移除）
 COPY --from=config /usr/share/oh-my-zsh /usr/share/oh-my-zsh
 COPY --from=config /etc/skel/ /etc/skel/
-COPY --from=config /usr/local/share/fonts/ /usr/local/share/fonts/
-RUN fc-cache -f >/dev/null 2>&1 || true
+COPY --from=vim-fast /root/.vimrc /etc/skel/.vimrc
+COPY --from=vim-fast /root/.vim/ /etc/skel/.vim/
+COPY config/tmux/tmuxs /usr/local/bin/tmuxs
+RUN fc-cache -f >/dev/null 2>&1 || true \
+ && chmod +x /usr/local/bin/tmuxs
 
 # 3) 服务成品
 COPY --from=services /out/ /usr/local/bin/
