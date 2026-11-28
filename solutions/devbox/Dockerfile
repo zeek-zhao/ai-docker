@@ -87,7 +87,7 @@ RUN mkdir -p "${NVM_DIR}" \
  && nvm alias default 'lts/*' \
  && npm config set registry "${NPM_REGISTRY}" \
  && npm install -g pnpm yarn typescript tsx eslint prettier vite \
- && npm install -g --allow-scripts=@deepseek-ai/dsh-subprocess-local,koffi,node-pty,protobufjs "@deepseek-ai/dsh@0.2.2-rc.5" \
+ && npm install -g --allow-scripts=@deepseek-ai/dsh-subprocess-local,koffi,node-pty,protobufjs "${DSH_NPM_SPEC}" \
  && pnpm config set registry "${NPM_REGISTRY}" --global \
  && npm cache clean --force \
  && pnpm store prune
@@ -131,6 +131,7 @@ RUN curl -fsSL -o /tmp/bun.zip \
 #    （dsh-compact 等不在公共 registry）→ install 全断且被 `| tail` 管道吞错（exit=tail=0），镜像 node_modules 为空。
 #    D26：构建期 jq 剔除 dsh-at-file（22 个可装插件保留）+ set -o pipefail 让安装失败即断。
 #    产物 /out/skel-dsh/ → final 拷至 /etc/skel/.dsh/profiles/desktop/；web-profile 模板另出一份供 entrypoint 首启播种
+ARG DSH_NPM_SPEC="@deepseek-ai/dsh@0.2.2-rc.5"
 COPY config/dsh/profile-package.json /out/skel-dsh/package.json
 COPY config/dsh/cordis.yml config/dsh/cordis.patch.yml /out/skel-dsh/
 # M11/D27：pnpm store 固定到家目录（消除运行时「Switching to the store…requires purging」全量重装诱因——
@@ -364,6 +365,8 @@ COPY tools/ /usr/local/share/devbox/tools/
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY scripts/decrypt.sh scripts/restore.sh /usr/local/bin/
 COPY secrets/manifest.json /usr/local/share/devbox/manifest.json
+# M12/D29：Tailscale 等运行凭证的 age 密文随镜像分发（公开镜像仅含密文；解密私钥 key.txt 须 compose 挂载，严禁入库）
+COPY secrets/*.age /usr/local/share/devbox/secrets/
 RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/decrypt.sh /usr/local/bin/restore.sh \
       /usr/local/bin/ttyd /usr/local/bin/filebrowser \
       /usr/local/bin/caddy /usr/local/bin/tailscale /usr/local/bin/tailscaled /usr/local/bin/auth-gate \
