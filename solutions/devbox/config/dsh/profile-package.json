@@ -26,15 +26,6 @@
     "dsh-wsl-suite": "0.1.12",
     "dshmarket": "1.73.19"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "koffi",
-      "node-pty",
-      "protobufjs",
-      "esbuild",
-      "@swc/core"
-    ]
-  },
   "dsh": {
     "profile": {
       "bundles": [

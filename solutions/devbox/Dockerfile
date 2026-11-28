@@ -136,7 +136,8 @@ COPY config/dsh/cordis.yml config/dsh/cordis.patch.yml /out/skel-dsh/
 RUN cd /out/skel-dsh \
  && jq 'del(.dependencies."dsh-at-file")' package.json > p.tmp && mv p.tmp package.json \
  && . "${NVM_DIR}/nvm.sh" && nvm use default >/dev/null \
- && pnpm install --frozen-lockfile=false --prefer-offline > /tmp/pi.log 2>&1 || { tail -20 /tmp/pi.log; exit 1; } \
+ && pnpm install --frozen-lockfile=false --prefer-offline \
+      --allow-build=koffi,node-pty,protobufjs,esbuild,@swc/core > /tmp/pi.log 2>&1 || { tail -20 /tmp/pi.log; exit 1; } \
  && tail -3 /tmp/pi.log \
  && [ -d node_modules/@deepseek-ai ] \
  && rm -rf node_modules/.cache /tmp/pi.log \
