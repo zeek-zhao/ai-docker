@@ -126,14 +126,20 @@ RUN curl -fsSL -o /tmp/bun.zip \
  && chmod +x /usr/local/bin/bun && rm -rf /tmp/bun.zip /tmp/bun-linux-x64 \
  && bun --version
 
-# 6) DSH desktop 档案骨架（TD-003/D12：快照结构 + 构建期 pnpm install；凭证零入库）
-#    产物 /out/skel-dsh/ → final 拷至 /etc/skel/.dsh/profiles/desktop/（useradd 时 cp -a 落 dev 家目录）
+# 6) DSH 档案骨架（TD-003/D12 + M10/D26：快照结构 + 构建期 pnpm install；凭证零入库）
+#    M10 排障：23 依赖中 dsh-at-file 的 peer（@deepseek-ai/dsh-client-runtime）会拉整条私有 rc 依赖树
+#    （dsh-compact 等不在公共 registry）→ install 全断且被 `| tail` 管道吞错（exit=tail=0），镜像 node_modules 为空。
+#    D26：构建期 jq 剔除 dsh-at-file（22 个可装插件保留）+ set -o pipefail 让安装失败即断。
+#    产物 /out/skel-dsh/ → final 拷至 /etc/skel/.dsh/profiles/desktop/；web-profile 模板另出一份供 entrypoint 首启播种
 COPY config/dsh/profile-package.json /out/skel-dsh/package.json
 COPY config/dsh/cordis.yml config/dsh/cordis.patch.yml /out/skel-dsh/
 RUN cd /out/skel-dsh \
+ && set -o pipefail \
+ && jq 'del(.dependencies."dsh-at-file")' package.json > p.tmp && mv p.tmp package.json \
  && . "${NVM_DIR}/nvm.sh" && nvm use default >/dev/null \
  && pnpm install --frozen-lockfile=false --prefer-offline 2>&1 | tail -3 \
- && rm -rf node_modules/.cache && pnpm store prune
+ && rm -rf node_modules/.cache \
+ && cp -a /out/skel-dsh /out/skel-dsh-web
 
 # 7) Magpie 插件骨架（TD-003/Q3：page-free-tokens 本地 tgz 缺失已剔除，其余 bun install）
 #    产物 /out/skel-magpie/ → final 拷至 /etc/skel/.config/magpie/
@@ -322,6 +328,9 @@ COPY --from=toolchain-build /out/gobin/ /usr/local/bin/
 COPY --from=toolchain-build /out/auth-gate /usr/local/bin/auth-gate
 COPY --from=toolchain-build /usr/local/bin/bun /usr/local/bin/bun
 COPY --from=toolchain-build /out/skel-dsh/ /etc/skel/.dsh/profiles/desktop/
+# web-profile 插件模板（M10/D26）：dsh web 运行时用 web 档案（desktop 是 Electron 专属，web 版不读取），
+# 首启由 entrypoint 播种到 ~/.dsh/profiles/web，插件面板即出现完整插件列表
+COPY --from=toolchain-build /out/skel-dsh-web/ /opt/devbox-skel/web-profile/
 COPY --from=toolchain-build /out/skel-magpie/ /etc/skel/.config/magpie/
 COPY config/dsh/settings.yaml /etc/skel/.dsh/settings.yaml
 RUN chmod +x /usr/local/bin/* 2>/dev/null || true \

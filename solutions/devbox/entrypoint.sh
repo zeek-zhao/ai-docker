@@ -148,6 +148,15 @@ start_dsh() {
     NODE_BIN_DIR="$(dirname "${DSH_BIN:-/nonexist}" 2>/dev/null || true)"
     if [ -n "$NODE_BIN_DIR" ] && [ -x "${NODE_BIN_DIR}/dsh" ]; then
       mkdir -p "$RUN_DIR/dsh"
+      # M10/D26：web 档案插件播种——dsh web 运行于 ~/.dsh/profiles/web（desktop 是 Electron 专属），
+      # 首启（web 档案不存在时）用镜像模板 /opt/devbox-skel/web-profile 原位迁移（mv 同文件系统零拷贝），
+      # 插件面板即出现完整插件列表；模板属 root，落家目录后统一交还 dev
+      if [ ! -f "/home/$DEV_USER/.dsh/profiles/web/package.json" ] && [ -d /opt/devbox-skel/web-profile ]; then
+        mkdir -p "/home/$DEV_USER/.dsh/profiles"
+        mv /opt/devbox-skel/web-profile "/home/$DEV_USER/.dsh/profiles/web" 2>/dev/null \
+          && chown -R "$DEV_USER:$DEV_USER" "/home/$DEV_USER/.dsh/profiles/web" \
+          || echo "[warn] web-profile 播种失败，dsh 将使用默认空档案"
+      fi
       DSH_PUBLIC_URL="${DSH_PUBLIC_URL:-http://127.0.0.1:8080/dsh/}"
       # D12 实证：dsh fence 在代理场景校验 X-Forwarded-Host 必须 ∈ trusted-host（Caddy 无法删/改 XFH 自动头）
       DSH_TRUSTED_HOST="$(printf '%s' "$DSH_PUBLIC_URL" | sed -E 's|^https?://([^/]+).*|\1|')"
