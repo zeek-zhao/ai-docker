@@ -22,13 +22,17 @@ CHECK_ONLY=0
 log() { printf '[upgrade] %s\n' "$*"; }
 warn() { printf '[upgrade][warn] %s\n' "$*" >&2; }
 
+# R21：dsh/npm 都在 NVM bin（env node 需要 PATH），统一注入
+export PATH="${NODE_BIN_DIR}:${PATH}"
+DSH_NPM_PKG='@deepseek-ai/dsh'
+
 # ---------- 版本探测 ----------
 cur_tailscale="$(tailscale version 2>/dev/null | head -1 || echo unknown)"
 cur_dsh="$("$NODE_BIN_DIR/dsh" --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+[^ ]*' | head -1 || echo unknown)"
 cur_magpie="$(magpie version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || magpie --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+' | head -1 || echo unknown)"
 
 new_tailscale="$(curl -fsSL "$TS_API" 2>/dev/null | grep -o '"Version": *"[^"]*"' | head -1 | cut -d'"' -f4 || true)"
-new_dsh="$(npm view dsh dist-tags.latest 2>/dev/null || true)"
+new_dsh="$(npm view ${DSH_NPM_PKG} dist-tags.latest 2>/dev/null || true)"
 new_magpie="$(curl -fsSL "https://api.github.com/repos/${MAGPIE_REPO}/releases/latest" 2>/dev/null | grep -o '"tag_name": *"[^"]*"' | head -1 | cut -d'"' -f4 || true)"
 
 log "当前版本: tailscale=${cur_tailscale} dsh=${cur_dsh} magpie=${cur_magpie}"
@@ -48,7 +52,7 @@ fi
 
 # ---------- 2) DSH（npm 全局升级） ----------
 if [ -n "$new_dsh" ] && [ -n "$NODE_BIN_DIR" ] && [ "$new_dsh" != "$cur_dsh" ]; then
-  if PATH="$NODE_BIN_DIR:$PATH" npm install -g dsh@latest >/dev/null 2>&1; then
+  if npm install -g ${DSH_NPM_PKG}@latest >/dev/null 2>&1; then
     log "DSH 已升级 → $("$NODE_BIN_DIR/dsh" --version 2>/dev/null | head -1)"
     DSH_UPGRADED=1
   else

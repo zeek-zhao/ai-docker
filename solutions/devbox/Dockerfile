@@ -42,6 +42,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       zsh tmux bash-completion git age openssl jq \
       silversearcher-ag fd-find bat ncdu btop httpie tldr git-delta \
       procps iproute2 \
+ && ln -sf /usr/bin/fdfind /usr/local/bin/fd \
+ && ln -sf /usr/bin/batcat /usr/local/bin/bat \
  && locale-gen zh_CN.UTF-8 en_US.UTF-8 \
  && update-locale LANG=${DEFAULT_LANG} \
  && ln -fs /usr/share/zoneinfo/${TIMEZONE} /etc/localtime \

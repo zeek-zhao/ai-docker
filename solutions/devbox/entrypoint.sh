@@ -155,6 +155,21 @@ if [ "$ENABLE_TAILSCALE" = "1" ]; then
   TS_UP_ARGS="--hostname=${TS_HOSTNAME:-devbox}"
   # D29：需求方确认开启出口节点广播（须在 Tailscale 管理台 approve 该设备后生效）
   TS_UP_ARGS="$TS_UP_ARGS --advertise-exit-node"
+  # R21：up 统一后台化+限时探测——authkey 型节点重启后 state 可能失效（Logged out），
+  # 前台 up 会无限阻塞拖死整个启动序列；失败只警告，绝不阻塞核心服务
+  ts_up_bg() {
+    # $@ = up 参数；返回 0=已连接
+    tailscale --socket="$TS_SOCK" up "$@" &
+    local UP_PID=$! _i=0
+    while [ "$_i" -lt 15 ]; do
+      sleep 1; _i=$((_i + 1))
+      if tailscale --socket="$TS_SOCK" status >/dev/null 2>&1; then
+        return 0
+      fi
+    done
+    kill "$UP_PID" 2>/dev/null
+    return 1
+  }
   if [ "$TS_NEEDS_LOGIN" = "1" ]; then
     TS_AUTHKEY_RESOLVED="${TS_AUTHKEY:-}"
     if [ -z "$TS_AUTHKEY_RESOLVED" ]; then
@@ -168,14 +183,40 @@ if [ "$ENABLE_TAILSCALE" = "1" ]; then
     fi
     if [ -n "$TS_AUTHKEY_RESOLVED" ]; then
       log "Tailscale 首启：使用解密 auth key 登录（hostname=${TS_HOSTNAME:-devbox}，advertise-exit-node）"
-      tailscale --socket="$TS_SOCK" up --authkey="$TS_AUTHKEY_RESOLVED" $TS_UP_ARGS \
-        || log "警告：tailscale up 失败（检查 key/网络，state 未写入下次仍走首启链路）"
+      if ts_up_bg --authkey="$TS_AUTHKEY_RESOLVED" $TS_UP_ARGS; then
+        log "Tailscale 已连接（首次登录）"
+      else
+        log "警告：tailscale 首启登录未在 15s 内完成（authkey 失效/网络受限），后台重试中；核心服务不受影响"
+      fi
     else
       log "提示：state 缺失且未提供 TS_AUTHKEY/可解密密文，tailscaled 已就绪待登录（免重登录需挂载 key.txt 或命名卷）"
     fi
   else
-    log "Tailscale：检测到持久化 state，免登录保持连接"
-    tailscale --socket="$TS_SOCK" up $TS_UP_ARGS || log "警告：tailscale up（保持连接）失败"
+    log "Tailscale：检测到持久化 state，尝试免登录保持连接"
+    if ts_up_bg $TS_UP_ARGS; then
+      log "Tailscale 已连接（免登录）"
+    else
+      # state 失效（authkey ephemeral/节点过期）：回退解密链重登一次
+      log "state 失效或登录超时，回退 authkey 重登"
+      TS_AUTHKEY_RESOLVED="${TS_AUTHKEY:-}"
+      if [ -z "$TS_AUTHKEY_RESOLVED" ]; then
+        for AGE_PKG in /secrets-pkg/tailscale-authkey.age /usr/local/share/devbox/secrets/tailscale-authkey.age; do
+          AGE_KEY_FILE="${TS_AGE_KEY_FILE:-/run/devbox/key.txt}"
+          if [ -f "$AGE_PKG" ] && [ -f "$AGE_KEY_FILE" ]; then
+            TS_AUTHKEY_RESOLVED="$(age -d -i "$AGE_KEY_FILE" "$AGE_PKG" 2>/dev/null)" && break
+          fi
+        done
+      fi
+      if [ -n "$TS_AUTHKEY_RESOLVED" ]; then
+        if ts_up_bg --authkey="$TS_AUTHKEY_RESOLVED" $TS_UP_ARGS; then
+          log "Tailscale 已重新连接（authkey 重登）"
+        else
+          log "警告：Tailscale 重登失败（不阻塞核心服务；检查 authkey 有效期/网络）"
+        fi
+      else
+        log "警告：无可用 authkey（TS_AUTHKEY/key.txt），Tailscale 保持未登录；核心服务不受影响"
+      fi
+    fi
   fi
   unset TS_AUTHKEY TS_AUTHKEY_RESOLVED
   log "tailscale 已启动（用户态模式；状态卷 /var/lib/tailscale）"
