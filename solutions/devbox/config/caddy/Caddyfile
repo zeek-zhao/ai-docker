@@ -58,6 +58,10 @@
 			respond @dsh_disabled "DSH 未启用（compose: ENABLE_DSH=1）" 503
 			reverse_proxy 127.0.0.1:3081 {
 				header_up Host 127.0.0.1:3081
+				# D17：dsh fence 的 Origin 白名单=精确 listen origin（--trusted-host 不参与 Origin 校验），
+				# 反代场景浏览器 XHR Origin 为公网入口 → 403 forbidden（插件/会话等动态 API 全废）。
+				# 将 Origin 同源化为 listen origin（Cookie 校验仍由 Host/X-Forwarded-Host+trusted-host 承担）。
+				header_up Origin http://127.0.0.1:3081
 			}
 		}
 
