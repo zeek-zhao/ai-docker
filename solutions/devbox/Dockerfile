@@ -331,6 +331,7 @@ RUN chmod +x /usr/local/bin/* 2>/dev/null || true \
 # 2) 交互环境成品（M8/D19：Meslo 字体段已随 p10k 移除）
 COPY --from=config /usr/share/oh-my-zsh /usr/share/oh-my-zsh
 COPY --from=config /etc/skel/ /etc/skel/
+COPY --from=config /usr/share/doc/fzf/examples/ /usr/share/doc/fzf/examples/
 COPY --from=vim-fast /root/.vimrc /etc/skel/.vimrc
 COPY --from=vim-fast /root/.vim/ /etc/skel/.vim/
 COPY config/tmux/tmuxs /usr/local/bin/tmuxs
