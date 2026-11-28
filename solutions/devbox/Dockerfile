@@ -73,6 +73,8 @@ ARG NVM_NODEJS_ORG_MIRROR=https://npmmirror.com/mirrors/node
 ARG NPM_REGISTRY=https://registry.npmmirror.com
 ARG GO_VERSION=auto
 ARG GO_PROXY=https://goproxy.cn,direct
+# M12：DSH CLI 版本升级参数（升级方法见 docs/guides/upgrade.md；须在使用前声明）
+ARG DSH_NPM_SPEC="@deepseek-ai/dsh@0.2.2-rc.5"
 
 ENV NVM_DIR=/opt/nvm \
     NVM_NODEJS_ORG_MIRROR=${NVM_NODEJS_ORG_MIRROR} \
@@ -131,7 +133,7 @@ RUN curl -fsSL -o /tmp/bun.zip \
 #    （dsh-compact 等不在公共 registry）→ install 全断且被 `| tail` 管道吞错（exit=tail=0），镜像 node_modules 为空。
 #    D26：构建期 jq 剔除 dsh-at-file（22 个可装插件保留）+ set -o pipefail 让安装失败即断。
 #    产物 /out/skel-dsh/ → final 拷至 /etc/skel/.dsh/profiles/desktop/；web-profile 模板另出一份供 entrypoint 首启播种
-ARG DSH_NPM_SPEC="@deepseek-ai/dsh@0.2.2-rc.5"
+#    （DSH_NPM_SPEC 已在阶段顶部 ARG 区声明，见 GO_PROXY 下方）
 COPY config/dsh/profile-package.json /out/skel-dsh/package.json
 COPY config/dsh/cordis.yml config/dsh/cordis.patch.yml /out/skel-dsh/
 # M11/D27：pnpm store 固定到家目录（消除运行时「Switching to the store…requires purging」全量重装诱因——
