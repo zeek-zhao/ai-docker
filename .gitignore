@@ -34,6 +34,7 @@ __pycache__/
 *.pem
 .env
 .env.*
+!.env.example            # 集中配置模板入库（M15）；真实 .env 凭证仍严禁入库
 
 # 测试机读报告：每次运行覆盖生成（manifest 标注 runtime-generated，不入库）
 solutions/repo-mirror-sync/reports/test-report.json

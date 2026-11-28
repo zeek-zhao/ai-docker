@@ -100,7 +100,7 @@ button{width:100%%;padding:.6rem;margin-top:.8rem;border:0;border-radius:6px;bac
 <input name="username" placeholder="用户名" required autofocus>
 <input name="password" type="password" placeholder="密码" required>
 <button type="submit">登录</button></form>
-<p class="hint">登录一次，导航 / 终端 / 文件共享共享会话（默认 %%d 小时）</p></div></body></html>`,
+<p class="hint">登录一次，导航 / 终端 / 文件共享共享会话（默认 %d 小时）</p></div></body></html>`,
 		msgHTML, next, ttlHours)
 }
 
