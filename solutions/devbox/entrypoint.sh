@@ -163,6 +163,7 @@ start_dsh() {
       (
         runuser -u "$DEV_USER" -- env \
           HOME="/home/$DEV_USER" PATH="${NODE_BIN_DIR}:/usr/local/bin:/usr/bin:/bin" DSH_PUBLIC_URL="$DSH_PUBLIC_URL" DSH_TRUSTED_HOST="$DSH_TRUSTED_HOST" \
+          MAGPIE_GATEWAY_KEY="${MAGPIE_GATEWAY_KEY:-devbox-magpie-key}" \
           sh -c 'cd "$HOME" && exec dsh web --host 127.0.0.1 --port 3081 --no-open --public-url "$DSH_PUBLIC_URL" --trusted-host "$DSH_TRUSTED_HOST" >>/tmp/dsh-web.log 2>&1'
       ) &
       # M10/D26 排障：22 插件档案使 dsh web 初始化 >3s，token URL 迟出；

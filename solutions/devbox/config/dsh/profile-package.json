@@ -3,7 +3,7 @@
   "private": true,
   "dependencies": {
     "@deepseek-ai/dsh-experimental-voice-input-bundle": "0.1.7-alpha.1",
-    "@deepseek-harness-tui/dsh-tui": "0.20.1",
+    "@deepseek-harness-tui/dsh-tui": "0.20.2",
     "@liustack/modlens": "3.27.5",
     "@liustack/modsearch": "5.10.14",
     "@michengai/dsh-automation": "1.1.1",
@@ -14,7 +14,6 @@
     "ds-bot": "0.3.9",
     "ds-harness-remote": "0.6.7",
     "dsh-at-file": "0.6.3",
-    "dsh-better-sidebar": "0.32.1",
     "dsh-bot-toggle": "https://github.com/JackWoods-code/dsh-bot-toggle/releases/download/v0.4.1/dsh-bot-toggle-0.4.1.tgz",
     "dsh-context": "0.87.0",
     "dsh-genui": "0.3.4",
@@ -39,7 +38,6 @@
         "dshmarket",
         "@deepseek-harness-tui/dsh-tui",
         "@deepseek-ai/dsh-experimental-forge-bundle",
-        "dsh-better-sidebar",
         "dsh-remote",
         "@liustack/modlens",
         "@liustack/modsearch",
@@ -61,4 +59,3 @@
     }
   }
 }
-
