@@ -210,10 +210,11 @@ RUN git clone --depth 1 "${VIM_FAST_REPO}" /tmp/vim-fast \
  && rm -rf /tmp/vim-fast
 
 # 3) 编译安装 vim（对照 vim_compile.sh：huge + multibyte + python3 dynamic；顶替系统 vim）
+#    注：上游 --enable-pythoninterp 为 python2 interp（需 python-dev），ubuntu 24.04 无 python2，故仅保留 python3
 RUN git clone --depth 1 "${VIM_MIRROR_REPO}" /tmp/vim-src \
  && cd /tmp/vim-src \
  && ./configure --with-features=huge --enable-multibyte \
-      --enable-pythoninterp=dynamic --enable-python3interp=dynamic \
+      --enable-python3interp=dynamic \
       --enable-gui=auto --enable-cscope --enable-largefile --enable-fail-if-missing \
       --prefix=/usr \
  && make -j"$(nproc)" \
