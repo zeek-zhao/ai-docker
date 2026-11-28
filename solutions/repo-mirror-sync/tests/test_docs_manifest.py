@@ -75,6 +75,36 @@ class TestDocsAndManifest(unittest.TestCase):
                 % (path.name, m_head.group(1), revisions[-1]),
             )
 
+    def test_TC_M5_governance_docs_revision_history(self):
+        """TC-M5 治理文档修订历史完整（D-25 对策）：AGENT/test-report/根README 修订表单调递增且末行为最新；AGENT 进度表与 docs/06 里程碑表同步"""
+        governance = [
+            ROOT / "AGENT.md",
+            ROOT / "reports" / "test-report.md",
+            ROOT.parents[1] / "README.md",
+        ]
+        for path in governance:
+            text = path.read_text(encoding="utf-8")
+            versions = re.findall(
+                r"^\|\s*(\d+\.\d+\.\d+)\s*\|\s*(\d{4}-\d{2}-\d{2})\s*\|",
+                text, flags=re.M)
+            self.assertTrue(
+                versions, "%s 缺少修订历史表" % path)
+            keys = [tuple(int(x) for x in v[0].split(".")) for v in versions]
+            self.assertEqual(
+                keys, sorted(keys),
+                "%s 修订历史版本非单调递增：%s" % (path, versions))
+            self.assertEqual(
+                keys[-1], max(keys),
+                "%s 修订历史末行不是最新版本" % path)
+        agent = (ROOT / "AGENT.md").read_text(encoding="utf-8")
+        plan = (DOCS / "06-开发计划与里程碑.md").read_text(encoding="utf-8")
+        agent_rows = re.findall(r"^\|\s*\d+\s+\|", agent, flags=re.M)
+        plan_rows = re.findall(r"^\|\s*M\d+\s+\|", plan, flags=re.M)
+        self.assertEqual(
+            len(agent_rows), len(plan_rows),
+            "AGENT.md 进度表（%d 行）与 docs/06 里程碑表（%d 行）不同步"
+            % (len(agent_rows), len(plan_rows)))
+
 
 if __name__ == "__main__":
     unittest.main()
