@@ -11,7 +11,7 @@ setup() {
   RUN=/run/devbox
   SUMMARY="${RUN}/SERVICES.md"
   # 从服务汇总解析真实凭证（密码/key 由 entrypoint 动态生成）
-  DEV_PW=$(sed -n 's|^.*dev / \([^ ]*\).*$|\1|p' "$SUMMARY" | head -1)
+  DEV_PW=$(sed -n 's|^.*dev / \([^ （（]*\).*$|\1|p' "$SUMMARY" | head -1)
   MAG_KEY=$(sed -n 's|.*magpie/?k=\([^) ]*\).*|\1|p' "$SUMMARY" | head -1)
   [ -z "$MAG_KEY" ] && MAG_KEY="devbox-magpie-key"
   JAR=$(mktemp)
@@ -35,7 +35,7 @@ teardown() { rm -f "$JAR"; }
   for c in rg tmux age fzf vim lf; do command -v "$c" >/dev/null; done
   rg --version | grep -q ripgrep
   tmux -V | grep -q tmux
-  age --version | grep -q "^age"
+  age --version | grep -qE "(^age|^[0-9]+\.)"
   vim --version | grep -q "^VIM"
 }
 
@@ -73,7 +73,10 @@ teardown() { rm -f "$JAR"; }
 }
 
 @test "B2.4 Given 已认证会话 When 访问路由矩阵 Then 首页/终端/文件共享 200 且裸路径 308" {
-  [ -s "$JAR" ]
+  # 独立登录种 cookie（bats 每 test 独立 setup/teardown）
+  local code; code=$(curl -s -c "$JAR" -o /dev/null -w '%{http_code}' \
+    --data-urlencode "username=dev" --data-urlencode "password=$DEV_PW" "$BASE/login")
+  [ "$code" = "302" ]
   for path in / /term/ /file-share/; do
     local code; code=$(curl -s -b "$JAR" -o /dev/null -w '%{http_code}' "$BASE$path")
     [ "$code" = "200" ]
@@ -112,7 +115,7 @@ teardown() { rm -f "$JAR"; }
 
 @test "B3.1 Given SERVICES.md 凭证段 Then dev/root 密码均解析成功且非弱密码" {
   [ -n "$DEV_PW" ] && [ "$DEV_PW" != "123" ]
-  local root_pw; root_pw=$(sed -n 's|^.*root 密码：\([^ ]*\).*$|\1|p' "$SUMMARY" | head -1)
+  local root_pw; root_pw=$(sed -n 's|^.*root 密码：\([^ （（]*\).*$|\1|p' "$SUMMARY" | head -1)
   [ -n "$root_pw" ] && [ "$root_pw" != "root" ]
 }
 

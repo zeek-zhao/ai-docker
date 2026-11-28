@@ -45,7 +45,7 @@ services:
       - devbox-tailscale:/var/lib/tailscale
       # ---- 可选挂载（按需取消注释）----
       # age 私钥（只读；严禁提交仓库，严禁打入镜像；Tailscale 首启自动登录依赖它解密密文）
-      - ./secrets/key.txt:/secrets/key.txt:ro
+      - ./secrets/key.txt:/run/devbox/key.txt:ro
       # 加密发布包目录（manifest + *.age；restore.sh 依次探测 /secrets-pkg 等）
       - ./secrets:/secrets-pkg:ro
       # docker socket（默认不挂；只读挂载仍有提权面，仅可信环境）
