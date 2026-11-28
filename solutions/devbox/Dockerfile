@@ -268,7 +268,7 @@ RUN set -eux; mkdir -p /out /opt
 RUN curl -fsSL "${GH_PROXY}https://github.com/jesseduffield/lazygit/releases/download/${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION#v}_Linux_x86_64.tar.gz" \
       | tar -xz -C /out lazygit \
  && curl -fsSL "${GH_PROXY}https://github.com/bootandy/dust/releases/download/${DUST_VERSION}/dust-${DUST_VERSION}-x86_64-unknown-linux-gnu.tar.gz" \
-      | tar -xz -C /out --strip-components=1 dust-${DUST_VERSION#v}-x86_64-unknown-linux-gnu/dust \
+      | tar -xz -C /out --strip-components=1 dust-${DUST_VERSION}-x86_64-unknown-linux-gnu/dust \
  && chmod +x /out/lazygit /out/dust
 
 # 1) ttyd Web 终端（静态二进制）
