@@ -128,12 +128,16 @@ fi
 if [ "$ENABLE_TAILSCALE" = "1" ]; then
   mkdir -p /var/lib/tailscale
   TS_SOCK=/run/devbox/tailscaled.sock
+  # D29 修正：state 存在性判断必须在 tailscaled 启动之前——daemon 启动 ~1s 内即写入空 state，
+  # 启动后再判断会恒为「已持久化」而跳过首启解密登录链（首启实机踩坑，见 R19）
+  TS_NEEDS_LOGIN=0
+  [ ! -f /var/lib/tailscale/tailscaled.state ] && TS_NEEDS_LOGIN=1
   tailscaled --tun=userspace-networking --statedir=/var/lib/tailscale --socket="$TS_SOCK" &
-  sleep 1
+  sleep 2
   TS_UP_ARGS="--hostname=${TS_HOSTNAME:-devbox}"
   # D29：需求方确认开启出口节点广播（须在 Tailscale 管理台 approve 该设备后生效）
   TS_UP_ARGS="$TS_UP_ARGS --advertise-exit-node"
-  if [ ! -f /var/lib/tailscale/tailscaled.state ]; then
+  if [ "$TS_NEEDS_LOGIN" = "1" ]; then
     TS_AUTHKEY_RESOLVED="${TS_AUTHKEY:-}"
     if [ -z "$TS_AUTHKEY_RESOLVED" ]; then
       # 密文探测顺序：compose 挂载包 > 镜像内置密文；解密私钥：TS_AGE_KEY_FILE > /run/devbox/key.txt
