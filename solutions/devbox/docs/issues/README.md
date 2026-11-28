@@ -16,6 +16,7 @@
 | R15 | dsh fence Origin 白名单 403 | header_up Origin 同源化（D17） |
 | R16 | 插件 pnpm 私有 peer 链断装+magpie 写 API 403 | jq 剔除+--allow-build（D26）；Origin/Referer（D18） |
 | R17 | 快照脱敏字面破坏 patch 枚举 | maxTokensField 修正（TD-007） |
+| R19 | Tailscale 首启跳过解密登录（tailscaled 启动即写空 state，state 存在性判断时序错误） | 判断提前至 daemon 启动前（0ffd9e8）；实机首启+免登录重启双验通过 |
 | R18 | Tailscale 凭证固化与密钥分离 | age 密文入库/镜像+私钥本地（D29，GD-003 §2） |
 
 ## 新增问题记录规范
