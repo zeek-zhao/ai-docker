@@ -40,7 +40,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libssl-dev libcurl4-openssl-dev zlib1g-dev libbz2-dev \
       libsqlite3-dev libxml2-dev libyaml-dev \
       zsh tmux bash-completion git age openssl jq \
-      silver-searcher fd-find bat ncdu btop httpie tldr git-delta \
+      silversearcher-ag fd-find bat ncdu btop httpie tldr git-delta \
       procps iproute2 \
  && locale-gen zh_CN.UTF-8 en_US.UTF-8 \
  && update-locale LANG=${DEFAULT_LANG} \
