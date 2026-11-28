@@ -728,7 +728,7 @@
         compat:
           supportsDeveloperRole: false
           supportsStore: false
-          maxTokensField: "max_output_tokens"
+          maxTokensField: "max_tokens"
           requiresReasoningContentOnAssistantMessages: true
 - id: agent-default-model # magpie
   config:
@@ -777,11 +777,6 @@
         serverName: "magpie"
         transport: "streamable-http"
         url: "http://127.0.0.1:3425/mcp/magpie/hub/dsh"
-- id: better-sidebar
-  name: dsh-better-sidebar
-  config:
-    viewersEnabled:
-      markdown: true
 - id: genui
   disabled: false
 - id: image-gen

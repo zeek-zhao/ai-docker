@@ -137,7 +137,7 @@ COPY config/dsh/cordis.yml config/dsh/cordis.patch.yml /out/skel-dsh/
 # 构建期 store 路径与运行时不同会触发该提示；固定后插件更新走增量下载，无需 purge）
 RUN printf 'store-dir=/home/dev/.pnpm-store\n' > /out/skel-dsh/.npmrc
 RUN cd /out/skel-dsh \
- && jq 'del(.dependencies."dsh-at-file") | .dsh.profile.bundles |= map(select(. != "dsh-at-file"))' package.json > p.tmp && mv p.tmp package.json \
+ && jq 'del(.dependencies."dsh-at-file", .dependencies."dsh-better-sidebar") | .dsh.profile.bundles |= map(select(. != "dsh-at-file" and . != "dsh-better-sidebar"))' package.json > p.tmp && mv p.tmp package.json \
  && . "${NVM_DIR}/nvm.sh" && nvm use default >/dev/null \
  && pnpm install --frozen-lockfile=false --prefer-offline \
       --allow-build=koffi,node-pty,protobufjs,esbuild,@swc/core > /tmp/pi.log 2>&1 || { tail -20 /tmp/pi.log; exit 1; } \
