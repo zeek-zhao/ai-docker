@@ -134,11 +134,12 @@ RUN curl -fsSL -o /tmp/bun.zip \
 COPY config/dsh/profile-package.json /out/skel-dsh/package.json
 COPY config/dsh/cordis.yml config/dsh/cordis.patch.yml /out/skel-dsh/
 RUN cd /out/skel-dsh \
- && set -o pipefail \
  && jq 'del(.dependencies."dsh-at-file")' package.json > p.tmp && mv p.tmp package.json \
  && . "${NVM_DIR}/nvm.sh" && nvm use default >/dev/null \
- && pnpm install --frozen-lockfile=false --prefer-offline 2>&1 | tail -3 \
- && rm -rf node_modules/.cache \
+ && pnpm install --frozen-lockfile=false --prefer-offline > /tmp/pi.log 2>&1 || { tail -20 /tmp/pi.log; exit 1; } \
+ && tail -3 /tmp/pi.log \
+ && [ -d node_modules/@deepseek-ai ] \
+ && rm -rf node_modules/.cache /tmp/pi.log \
  && cp -a /out/skel-dsh /out/skel-dsh-web
 
 # 7) Magpie 插件骨架（TD-003/Q3：page-free-tokens 本地 tgz 缺失已剔除，其余 bun install）
