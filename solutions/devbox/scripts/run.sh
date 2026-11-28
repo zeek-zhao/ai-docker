@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# run.sh —— zeek-ai-devbox 启动/挂载/端口映射示例（参数化，等价 PLAN §10.2）
+# run.sh —— devbox 启动/挂载/端口映射示例（参数化，等价 PLAN §10.2）
 # 文档编号：SC-002 · 版本：v1.0 · 2026-11-27 · 维护人：zeek.zhao
 # 用法: ./scripts/run.sh           # 默认参数启动
 #       NAME=x WEB_PORT=9090 ./scripts/run.sh
@@ -9,7 +9,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 NAME="${NAME:-zeek-devbox}"
-IMAGE="${IMAGE:-zeek-ai-devbox:latest}"
+IMAGE="${IMAGE:-devbox:latest}"
 WEB_PORT="${WEB_PORT:-8080}"
 SSH_PORT="${SSH_PORT:-2222}"
 

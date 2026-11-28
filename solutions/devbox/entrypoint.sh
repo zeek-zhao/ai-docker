@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# entrypoint.sh —— zeek-ai-devbox 启动入口（PLAN §7.2 六步序列）
+# entrypoint.sh —— devbox 启动入口（PLAN §7.2 六步序列）
 # 文档编号：RT-001 · 版本：v1.0 · 2026-11-27 · 维护人：zeek.zhao
 # 序列：1权限对齐 → 2密码 → 3age解密还原 → 4目录准备 → 5拉起服务 → 6Caddy前台守护
 # =============================================================================
@@ -9,7 +9,8 @@ set -euo pipefail
 DEV_USER="${DEV_USER:-dev}"
 HOST_UID="${HOST_UID:-1000}"
 HOST_GID="${HOST_GID:-1000}"
-DEV_PASSWORD="${DEV_PASSWORD:-123}"
+DEV_PASSWORD="${DEV_PASSWORD:-}"
+ROOT_PASSWORD="${ROOT_PASSWORD:-}"
 ROOT_PASSWORD="${ROOT_PASSWORD:-root}"
 ENABLE_TAILSCALE="${ENABLE_TAILSCALE:-0}"
 ENABLE_DSH="${ENABLE_DSH:-0}"
@@ -33,10 +34,27 @@ echo "$DEV_USER ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/dev
 chmod 440 /etc/sudoers.d/dev
 log "dev 用户就绪: uid=${HOST_UID} gid=${HOST_GID} shell=zsh"
 
-# ---------- 2) 设置密码（PLAN §7.2.2，测试默认弱密码，公网必改） ----------
+# ---------- 2) 设置密码（TD-009/D30：默认随机生成；显式弱密码仅警告——需求方拍板） ----------
+# 未显式提供时生成 24 字符随机密码（openssl rand -base64 18），写入服务汇总文件与启动日志；
+# 弱密码（<6 位/纯数字/常见弱表）打警告继续，公网部署请务必显式传入强密码
+DEV_PW_GENERATED=0
+if [ -z "$DEV_PASSWORD" ]; then
+  DEV_PASSWORD="$(openssl rand -base64 18 2>/dev/null || head -c 24 /dev/urandom | base64 | tr -d '/+=' | cut -c1-24)"
+  DEV_PW_GENERATED=1
+fi
+if [ -z "$ROOT_PASSWORD" ]; then
+  ROOT_PASSWORD="$(openssl rand -base64 18 2>/dev/null || head -c 24 /dev/urandom | base64 | tr -d '/+=' | cut -c1-24)"
+fi
+case "$DEV_PASSWORD" in
+  [0-9][0-9][0-9][0-9][0-9]*|[0-9][0-9][0-9][0-9]|[0-9][0-9][0-9]|123|123456|password|admin|root|dev|000000|111111)
+    log "警告: DEV_PASSWORD 为弱密码，公网部署请更换（本容器仅为联调便利放行）" ;;
+esac
+if [ ${#DEV_PASSWORD} -lt 6 ] && [ "$DEV_PW_GENERATED" = "0" ]; then
+  log "警告: DEV_PASSWORD 长度不足 6 位，存在被暴力破解风险"
+fi
 echo "$DEV_USER:$DEV_PASSWORD" | chpasswd
 echo "root:$ROOT_PASSWORD" | chpasswd
-log "密码已写入（dev/root）"
+log "密码已写入（dev/root${DEV_PW_GENERATED:+，dev 密码为随机生成，见服务汇总文件}）"
 
 # ---------- 3) 解密还原配置（age + manifest，PLAN §7.2.3 / §8） ----------
 if [ -f /secrets/key.txt ]; then
@@ -137,6 +155,21 @@ if [ "$ENABLE_TAILSCALE" = "1" ]; then
   TS_UP_ARGS="--hostname=${TS_HOSTNAME:-devbox}"
   # D29：需求方确认开启出口节点广播（须在 Tailscale 管理台 approve 该设备后生效）
   TS_UP_ARGS="$TS_UP_ARGS --advertise-exit-node"
+  # R21：up 统一后台化+限时探测——authkey 型节点重启后 state 可能失效（Logged out），
+  # 前台 up 会无限阻塞拖死整个启动序列；失败只警告，绝不阻塞核心服务
+  ts_up_bg() {
+    # $@ = up 参数；返回 0=已连接
+    tailscale --socket="$TS_SOCK" up "$@" &
+    local UP_PID=$! _i=0
+    while [ "$_i" -lt 15 ]; do
+      sleep 1; _i=$((_i + 1))
+      if tailscale --socket="$TS_SOCK" status >/dev/null 2>&1; then
+        return 0
+      fi
+    done
+    kill "$UP_PID" 2>/dev/null
+    return 1
+  }
   if [ "$TS_NEEDS_LOGIN" = "1" ]; then
     TS_AUTHKEY_RESOLVED="${TS_AUTHKEY:-}"
     if [ -z "$TS_AUTHKEY_RESOLVED" ]; then
@@ -150,14 +183,40 @@ if [ "$ENABLE_TAILSCALE" = "1" ]; then
     fi
     if [ -n "$TS_AUTHKEY_RESOLVED" ]; then
       log "Tailscale 首启：使用解密 auth key 登录（hostname=${TS_HOSTNAME:-devbox}，advertise-exit-node）"
-      tailscale --socket="$TS_SOCK" up --authkey="$TS_AUTHKEY_RESOLVED" $TS_UP_ARGS \
-        || log "警告：tailscale up 失败（检查 key/网络，state 未写入下次仍走首启链路）"
+      if ts_up_bg --authkey="$TS_AUTHKEY_RESOLVED" $TS_UP_ARGS; then
+        log "Tailscale 已连接（首次登录）"
+      else
+        log "警告：tailscale 首启登录未在 15s 内完成（authkey 失效/网络受限），后台重试中；核心服务不受影响"
+      fi
     else
       log "提示：state 缺失且未提供 TS_AUTHKEY/可解密密文，tailscaled 已就绪待登录（免重登录需挂载 key.txt 或命名卷）"
     fi
   else
-    log "Tailscale：检测到持久化 state，免登录保持连接"
-    tailscale --socket="$TS_SOCK" up $TS_UP_ARGS || log "警告：tailscale up（保持连接）失败"
+    log "Tailscale：检测到持久化 state，尝试免登录保持连接"
+    if ts_up_bg $TS_UP_ARGS; then
+      log "Tailscale 已连接（免登录）"
+    else
+      # state 失效（authkey ephemeral/节点过期）：回退解密链重登一次
+      log "state 失效或登录超时，回退 authkey 重登"
+      TS_AUTHKEY_RESOLVED="${TS_AUTHKEY:-}"
+      if [ -z "$TS_AUTHKEY_RESOLVED" ]; then
+        for AGE_PKG in /secrets-pkg/tailscale-authkey.age /usr/local/share/devbox/secrets/tailscale-authkey.age; do
+          AGE_KEY_FILE="${TS_AGE_KEY_FILE:-/run/devbox/key.txt}"
+          if [ -f "$AGE_PKG" ] && [ -f "$AGE_KEY_FILE" ]; then
+            TS_AUTHKEY_RESOLVED="$(age -d -i "$AGE_KEY_FILE" "$AGE_PKG" 2>/dev/null)" && break
+          fi
+        done
+      fi
+      if [ -n "$TS_AUTHKEY_RESOLVED" ]; then
+        if ts_up_bg --authkey="$TS_AUTHKEY_RESOLVED" $TS_UP_ARGS; then
+          log "Tailscale 已重新连接（authkey 重登）"
+        else
+          log "警告：Tailscale 重登失败（不阻塞核心服务；检查 authkey 有效期/网络）"
+        fi
+      else
+        log "警告：无可用 authkey（TS_AUTHKEY/key.txt），Tailscale 保持未登录；核心服务不受影响"
+      fi
+    fi
   fi
   unset TS_AUTHKEY TS_AUTHKEY_RESOLVED
   log "tailscale 已启动（用户态模式；状态卷 /var/lib/tailscale）"
@@ -256,4 +315,43 @@ done
 log "Caddy 就绪（等待 ${_wait_i}s），启动 DSH/Magpie"
 start_dsh
 start_magpie
+
+# ---------- 6.1) 服务汇总文件（TD-009/T13.4：启动后一览全部服务/入口/密钥位置） ----------
+SUMMARY="${RUN_DIR}/SERVICES.md"
+cat > "$SUMMARY" <<EOF
+# DevBox 服务一览（容器启动时自动生成）
+
+## 登录凭证
+- 网页/网关登录：dev / ${DEV_PASSWORD}$([ "$DEV_PW_GENERATED" = "1" ] && echo '（本次为随机生成，请立即保存；下次重启将重新生成，可用 -e DEV_PASSWORD 固定）')
+- root 密码：${ROOT_PASSWORD}
+- Magpie 面板 key：\${MAGPIE_WEB_KEY:-devbox-magpie-key}（?k= 兑换链接见下方）
+
+## 服务入口（宿主映射 http://<宿主IP>:\${WEB_PORT:-8080}）
+| 服务 | 入口 | 用途 |
+|------|------|------|
+| 首页 | / | HomePage 导航面板 |
+| Web 终端 | /term/ | ttyd（dev 用户 zsh，自动进入 tmux） |
+| 文件共享 | /file-share/ | File Browser（dev 数据目录） |
+| DSH | /dsh/ | DeepSeek Harness Web（token 链接见 /run/devbox/dsh/url.txt） |
+| Magpie | /magpie/?k=<key> | AI 网关面板（API 网关 /v1/* 直通免网页登录） |
+| SSH | ssh -p \${SSH_PORT:-2222} dev@<宿主IP> | 密码同上；root 禁登 |
+| Tailscale | tailscale status | 见 Tailscale 段（ENABLE_TAILSCALE=1 时） |
+
+## 密钥与状态位置
+| 项 | 位置 |
+|------|------|
+| age 私钥（运行期） | /run/devbox/key.txt（宿主只读挂载，勿入镜像/仓库） |
+| 内置密文 | /usr/local/share/devbox/secrets/*.age（镜像内，需私钥解密） |
+| Tailscale state | docker 卷 devbox-tailscale:/var/lib/tailscale（免登录持久化） |
+| DSH 会话 token 链接 | /run/devbox/dsh/url.txt |
+| 本汇总文件 | /run/devbox/SERVICES.md（docker exec devbox cat /run/devbox/SERVICES.md） |
+
+## 升级与维护
+- 容器内一键升级（Tailscale/DSH/Magpie+插件自动匹配）：bash /usr/local/share/devbox/tools/upgrade.sh
+- 镜像级升级：改 docker-compose ARG / 拉取 ghcr.io/zeek-zhao/devbox:latest（docs/guides/upgrade.md）
+- 故障排查：docs/guides/troubleshooting.md；Tailscale 访问各服务：docs/guides/tailscale-access.md
+EOF
+chmod 600 "$SUMMARY"
+log "服务汇总已生成: docker exec devbox cat /run/devbox/SERVICES.md"
+
 wait "$CADDY_PID"

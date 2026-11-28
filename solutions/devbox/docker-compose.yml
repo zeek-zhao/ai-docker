@@ -13,7 +13,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: final
-    image: zeek-ai-devbox:latest
+    image: devbox:latest
     container_name: devbox
     hostname: devbox
     restart: unless-stopped

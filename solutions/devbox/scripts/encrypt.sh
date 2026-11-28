@@ -29,6 +29,7 @@ need jq; need age; need tar
 mkdir -p "$OUT"
 
 fail=0
+DRY_RUN_QUIET="${DRY_RUN_QUIET:-0}"
 while IFS= read -r e; do
   etype=$(jq -r '.type' <<<"$e")
   source=$(jq -r '.source' <<<"$e")

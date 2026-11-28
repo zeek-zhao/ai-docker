@@ -1,4 +1,4 @@
-# DevBox（zeek-ai-devbox）—— 全栈随身开发容器工程
+# DevBox（devbox）—— 全栈随身开发容器工程
 
 > 文档编号：RD-001 · 版本：v1.1 · 日期：2026-11-28 · 作者：zeek.zhao（AI 执行） · 评审：需求方已确认 · 状态：已发布
 > 原始需求：`docs/plans/PLAN-original.md`（ZeekDevAI Container 全栈随身开发容器方案）
