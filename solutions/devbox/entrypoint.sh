@@ -181,6 +181,7 @@ start_magpie() {
       MAGPIE_WEB_URL="${MAGPIE_WEB_URL:-http://127.0.0.1:8080/magpie/}"
       runuser -u "$DEV_USER" -- env \
         HOME="/home/$DEV_USER" MAGPIE_WEB_KEY="${MAGPIE_WEB_KEY:-devbox-magpie-key}" MAGPIE_WEB_URL="$MAGPIE_WEB_URL" \
+        MAGPIE_TRUST_PROXY=1 \
         sh -c 'cd "$HOME" && exec magpie web --addr 127.0.0.1:3430 --no-open --gateway >/tmp/magpie-web.log 2>&1' &
       touch "$RUN_DIR/magpie/enabled"
       log "Magpie 已启动（面板 127.0.0.1:3430 + 网关 3425；入口 /magpie/?k= 和 MAGPIE_WEB_KEY，默认 devbox-magpie-key）"
