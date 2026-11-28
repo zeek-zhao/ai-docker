@@ -71,6 +71,11 @@
 			respond @magpie_disabled "Magpie 未启用（compose: ENABLE_MAGPIE=1）" 503
 			reverse_proxy 127.0.0.1:3430 {
 				header_up Host 127.0.0.1:3430
+				# D18：magpie 对写类 API（安装/更新/设置）校验 Origin/Referer 须为自身 listen origin
+				#（"magpie's API answers magpie's own page only"）——反代场景浏览器 Origin 为公网入口 → 403，
+				# 前端表现为「网络问题」。同源化 Origin/Referer（会话 cookie 校验不受影响）。
+				header_up Origin http://127.0.0.1:3430
+				header_up Referer http://127.0.0.1:3430/
 			}
 		}
 
@@ -83,6 +88,8 @@
 		handle @magpie_api {
 			reverse_proxy 127.0.0.1:3430 {
 				header_up Host 127.0.0.1:3430
+				header_up Origin http://127.0.0.1:3430
+				header_up Referer http://127.0.0.1:3430/
 			}
 		}
 
