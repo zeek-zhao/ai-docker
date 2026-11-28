@@ -162,7 +162,11 @@ RUN git clone --depth 1 "${GH_PROXY}${OMZ_REPO}" /usr/share/oh-my-zsh \
  && rm -rf /usr/share/oh-my-zsh/.git /usr/share/oh-my-zsh/custom/plugins/*/.git
 
 # 2) zsh/tmux 用户骨架（首次建用户即生效；tmuxs 工作台脚本见 config/tmux/tmuxs）
+#    ubuntu 基础镜像 path-exclude 裁剪了 /usr/share/doc，omz fzf 插件 source 的示例脚本需从 fzf 源码补回（版本与 apt fzf 对齐）
 COPY config/zsh/zshrc /etc/skel/.zshrc
+RUN mkdir -p /usr/share/doc/fzf/examples \
+ && curl -fsSL "https://raw.githubusercontent.com/junegunn/fzf/0.44.1/shell/key-bindings.zsh" -o /usr/share/doc/fzf/examples/key-bindings.zsh \
+ && curl -fsSL "https://raw.githubusercontent.com/junegunn/fzf/0.44.1/shell/completion.zsh" -o /usr/share/doc/fzf/examples/completion.zsh
 RUN git clone --depth 1 "${GH_PROXY}${OH_MY_TMUX_REPO}" /tmp/oh-my-tmux \
  && cp /tmp/oh-my-tmux/.tmux.conf /etc/skel/.tmux.conf \
  && cp /tmp/oh-my-tmux/.tmux.conf.local /etc/skel/.tmux.conf.local \
