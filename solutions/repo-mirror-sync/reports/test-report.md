@@ -303,6 +303,12 @@ edge 0.2GB 合箱 2.0GB）。两种分组均为满足「每 job ≤ 4.0 GB、合
 - `tests/test_docs_manifest.py` 新增 **TC-M5**：AGENT.md / reports/test-report.md / 仓库根 README.md 三份治理文档的修订历史表必须存在、版本单调递增且末行为最新；AGENT.md 进度表行数与 docs/06 里程碑表行数强制同步（防「内容已更新而修订行漏加」类治理漏项复发，如 D-25 的 1.0.6 漏记与本轮 §15 修订行笔误）；
 - 勘误：§15 修订行「M11 补充」→「M10 补充」（笔误，见 1.0.12 修订行）。
 
+## 17. F-4 收口（方案合入 main 后）
+
+- 快照同步（97b53ea）+ 本地合并推 main（03e838e，合并提交身份 zeek.zhao）+ PR #10 标记 merged；
+- 三份 repo-mirror-sync-* 工作流注册 state=active；workflow_dispatch 实测三份全部 success（scan run#7 / build-block run#4 / verify-fuse run#5，ref=main）；
+- schedule cron 已注册（scan.yml "17 3 */7 * *"），首次实际触发待观察；详见 `reports/acceptance-20261128-f4-closeout.md`（W1~W5/V19~V21）；Issue #7 划账关闭。
+
 ## 修订历史
 
 | 版本 | 日期 | 修订说明 |
@@ -320,3 +326,4 @@ edge 0.2GB 合箱 2.0GB）。两种分组均为满足「每 job ≤ 4.0 GB、合
 | 1.0.10 | 2026-11-28 | M10 收口补充：CI 端到端告警达成与 GH_TOKENS 轮转 stub 实证（§14.3）；F-15 补记+F-16 登记（§14.2） |
 | 1.0.11 | 2026-11-28 | M10 补充：SC-M10-01~06（合并裁决 FR-D2）85/85 全绿（§15）；E2E-12 CLI 冒烟；F-17/F-18/D-28 登记；Issue #3 收口 |
 | 1.0.12 | 2026-11-28 | 治理增强（D-25 待办划账）：TC-M5 治理文档修订历史完整性断言（§16）；勘误 §15 修订行 M11→M10 |
+| 1.0.13 | 2026-11-28 | F-4 收口：方案合入 main（03e838e）后三流水线注册 active+dispatch 实测全绿（§17） |
