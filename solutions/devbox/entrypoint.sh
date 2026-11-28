@@ -165,8 +165,17 @@ start_dsh() {
           HOME="/home/$DEV_USER" PATH="${NODE_BIN_DIR}:/usr/local/bin:/usr/bin:/bin" DSH_PUBLIC_URL="$DSH_PUBLIC_URL" DSH_TRUSTED_HOST="$DSH_TRUSTED_HOST" \
           sh -c 'cd "$HOME" && exec dsh web --host 127.0.0.1 --port 3081 --no-open --public-url "$DSH_PUBLIC_URL" --trusted-host "$DSH_TRUSTED_HOST" >>/tmp/dsh-web.log 2>&1'
       ) &
-      sleep 3
-      DSH_URL="$(grep -o 'http://[^ ]*token=[A-Za-z0-9._-]*' /tmp/dsh-web.log 2>/dev/null | tail -1)"
+      # M10/D26 排障：22 插件档案使 dsh web 初始化 >3s，token URL 迟出；
+      # grep 空匹配在 set -o pipefail + set -e 下会退出整个 entrypoint（Exited(1) 根因）——
+      # 轮询等待（最多 30s）并对 grep 空匹配兜底（|| true）
+      DSH_URL=""
+      _dsh_i=0
+      while [ "$_dsh_i" -lt 30 ]; do
+        DSH_URL="$(grep -o 'http://[^ ]*token=[A-Za-z0-9._-]*' /tmp/dsh-web.log 2>/dev/null | tail -1 || true)"
+        [ -n "$DSH_URL" ] && break
+        sleep 1
+        _dsh_i=$((_dsh_i + 1))
+      done
       if [ -n "$DSH_URL" ]; then
         printf '%s\n' "$DSH_URL" > "$RUN_DIR/dsh/url.txt"
         log "DSH 登录链接（把入口前缀换成宿主映射后访问）：$DSH_URL"
