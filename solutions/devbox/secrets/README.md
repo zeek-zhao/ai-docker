@@ -27,7 +27,7 @@ scripts/pack.sh
 ## 手动 dry-run
 
 ```bash
-docker exec zeek-devbox restore.sh --dry-run
+docker exec devbox restore.sh --dry-run
 ```
 
 ## 密钥轮换

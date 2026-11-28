@@ -97,7 +97,7 @@ RUN mkdir -p "${NVM_DIR}" \
  && nvm install --lts \
  && nvm alias default 'lts/*' \
  && npm config set registry "${NPM_REGISTRY}" \
- && npm install -g pnpm yarn typescript tsx eslint prettier vite \
+ && npm install -g pnpm yarn typescript tsx eslint prettier vite bats \
  && npm install -g --allow-scripts=@deepseek-ai/dsh-subprocess-local,koffi,node-pty,protobufjs "${DSH_NPM_SPEC}" \
  && pnpm config set registry "${NPM_REGISTRY}" --global \
  && npm cache clean --force \

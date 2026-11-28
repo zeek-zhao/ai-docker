@@ -11,10 +11,7 @@ name: devbox
 
 services:
   devbox:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: final
+    # M16：镜像唯一来源=GHCR（compose 不再本地 build，避免 up 行为不一致）；本地构建用 scripts/build.sh
     image: ${DEVBOX_IMAGE:-ghcr.io/zeek-zhao/devbox:latest}
     container_name: devbox
     hostname: devbox
@@ -29,6 +26,8 @@ services:
       DEV_PASSWORD: "${DEV_PASSWORD:-}"          # 留空则启动时自动生成 24 位随机密码（D30），见容器内 /run/devbox/SERVICES.md
       ROOT_PASSWORD: "${ROOT_PASSWORD:-}"        # 留空同上（root 随机生成）
       PUBLIC_URL: "${PUBLIC_URL:-}"              # 对外访问地址（如 http://192.168.1.10:8080），用于 DSH token 链接生成；留空自动探测容器 IP
+      WEB_PORT: "${WEB_PORT:-8080}"              # 透传宿主网页端口（SERVICES.md 文案准确性；M16）
+      SSH_PORT: "${SSH_PORT:-2222}"              # 透传宿主 SSH 端口（同上）
       TZ: "${TZ:-Asia/Shanghai}"
       ENABLE_TAILSCALE: "${ENABLE_TAILSCALE:-0}"  # 1=启用用户态 tailscale（首启自动解密 auth key，见 volumes 注释）
       TS_HOSTNAME: "${TS_HOSTNAME:-devbox}"       # Tailscale 固定机器名（与认证绑定，勿随意更改）
@@ -46,9 +45,9 @@ services:
       - devbox-tailscale:/var/lib/tailscale
       # ---- 可选挂载（按需取消注释）----
       # age 私钥（只读；严禁提交仓库，严禁打入镜像；Tailscale 首启自动登录依赖它解密密文）
-      # - ./secrets/key.txt:/secrets/key.txt:ro
+      - ./secrets/key.txt:/secrets/key.txt:ro
       # 加密发布包目录（manifest + *.age；restore.sh 依次探测 /secrets-pkg 等）
-      # - ./secrets:/secrets-pkg:ro
+      - ./secrets:/secrets-pkg:ro
       # docker socket（默认不挂；只读挂载仍有提权面，仅可信环境）
       # - /var/run/docker.sock:/var/run/docker.sock:ro
       # DSH 网关/面板二进制注入点（ENABLE_DSH=1 时需要）

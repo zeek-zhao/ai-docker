@@ -341,9 +341,9 @@ cat > "$SUMMARY" <<EOF
 ## 登录凭证
 - 网页/网关登录：dev / ${DEV_PASSWORD}$([ "$DEV_PW_GENERATED" = "1" ] && echo '（本次为随机生成，请立即保存；下次重启将重新生成，可用 -e DEV_PASSWORD 固定）')
 - root 密码：${ROOT_PASSWORD}
-- Magpie 面板 key：\${MAGPIE_WEB_KEY:-devbox-magpie-key}（?k= 兑换链接见下方）
+- Magpie 面板 key：${MAGPIE_WEB_KEY:-devbox-magpie-key}（?k= 兑换链接见下方）
 
-## 服务入口（宿主映射 http://<宿主IP>:\${WEB_PORT:-8080}）
+## 服务入口（宿主映射 http://<宿主IP>:${WEB_PORT:-8080}）
 | 服务 | 入口 | 用途 |
 |------|------|------|
 | 首页 | / | HomePage 导航面板 |
@@ -351,7 +351,7 @@ cat > "$SUMMARY" <<EOF
 | 文件共享 | /file-share/ | File Browser（dev 数据目录） |
 | DSH | /dsh/ | DeepSeek Harness Web（token 链接见 /run/devbox/dsh/url.txt） |
 | Magpie | /magpie/?k=<key> | AI 网关面板（API 网关 /v1/* 直通免网页登录） |
-| SSH | ssh -p \${SSH_PORT:-2222} dev@<宿主IP> | 密码同上；root 禁登 |
+| SSH | ssh -p ${SSH_PORT:-2222} dev@<宿主IP> | 密码同上；root 禁登 |
 | Tailscale | tailscale status | 见 Tailscale 段（ENABLE_TAILSCALE=1 时） |
 
 ## 密钥与状态位置
